@@ -11,14 +11,24 @@
 ## Tools
 
 - ABI method caller
+  - sign and broadcast
+  - static call
 - ABI event viewer
 - Tx input data decoder
+  - decode constructor callata
+  - decode tx calldata
 - Unit converter
 - Eth sender
-- Tx sender
+- Custom tx tools
+  - sign and broadcast
+  - call static
+  - populate tx
+  - estimate gas
+- Get fee data
 - Get tx receipt
 - Get block info
 - Get address code
+- Get nonce
 - Ens resolver
 - Ens reverse resolver
 - Ens avatar resolver
