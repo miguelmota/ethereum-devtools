@@ -2194,6 +2194,56 @@ function BatchEnsReverseResolverChecker (props: any) {
   )
 }
 
+function SignMessage (props: any) {
+  const { wallet } = props
+  const [loading, setLoading] = useState<boolean>(false)
+  const [value, setValue] = useState<string>(
+    localStorage.getItem('signMessage' || '') || ''
+  )
+  const [result, setResult] = useState<string | null>(null)
+  useEffect(() => {
+    localStorage.setItem('signMessage', value || '')
+  }, [value])
+  const handleValueChange = (_value: string) => {
+    setValue(_value)
+  }
+  const encode = async () => {
+    try {
+      setResult(null)
+      setLoading(true)
+      const signature = await wallet.signMessage(value)
+      setResult(signature)
+    } catch (err) {
+      alert(err.message)
+    }
+    setLoading(false)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    encode()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Message</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='message'
+          variant='textarea'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>sign message</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>
+        {loading && <span>waiting for wallet...</span>}
+        {result}
+      </div>
+    </div>
+  )
+}
+
 function App () {
   const [useWeb3, setUseWeb3] = useState<boolean>(() => {
     const cached = localStorage.getItem('useWeb3')
@@ -2784,6 +2834,11 @@ function App () {
       <Fieldset legend='Public Key to Address'>
         <section>
           <PublicKeyToAddress />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Sign Message'>
+        <section>
+          <SignMessage wallet={wallet} />
         </section>
       </Fieldset>
       <Fieldset legend='Batch ETH Balance Checker'>
