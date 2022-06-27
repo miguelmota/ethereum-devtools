@@ -2558,7 +2558,7 @@ function App () {
   return (
     <main>
       <header>
-        <h1>Ethereum ABI caller tool</h1>
+        <h1>Ethereum DevTools</h1>
       </header>
       <Fieldset legend='Network'>
         <section>
