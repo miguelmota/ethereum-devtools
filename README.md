@@ -30,7 +30,9 @@
 - Private key to address
 - Private key to public key
 - Public key to address
+- Hash message
 - Sign message
+- Verify signature
 - Batch Eth balance checker
 - Batch Erc20 balance checker
 - Batch EkSync balance checker

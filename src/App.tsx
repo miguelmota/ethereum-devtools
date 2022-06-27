@@ -24,6 +24,7 @@ const contentHash = require('content-hash') // TODO: types
 const contentHash2 = require('@ensdomains/content-hash')
 ;(window as any).BigNumber = BigNumber
 ;(window as any).ethers = ethers
+;(window as any).utils = utils
 ;(window as any).CID = CID
 ;(window as any).contentHash = contentHash
 ;(window as any).base58 = base58
@@ -2194,15 +2195,58 @@ function BatchEnsReverseResolverChecker (props: any) {
   )
 }
 
+function HashMessage (props: any) {
+  const [value, setValue] = useState<string>(
+    localStorage.getItem('hashMessageValue' || '') || ''
+  )
+  const [result, setResult] = useState<string | null>(null)
+  useEffect(() => {
+    localStorage.setItem('hashMessageValue', value || '')
+  }, [value])
+  const handleValueChange = (_value: string) => {
+    setValue(_value)
+  }
+  const hash = async () => {
+    try {
+      setResult(null)
+      const hashed = utils.hashMessage(value)
+      setResult(hashed)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    hash()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Message</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='message'
+          variant='textarea'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>hash message</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>{result}</div>
+    </div>
+  )
+}
+
 function SignMessage (props: any) {
   const { wallet } = props
   const [loading, setLoading] = useState<boolean>(false)
   const [value, setValue] = useState<string>(
-    localStorage.getItem('signMessage' || '') || ''
+    localStorage.getItem('signMessageValue' || '') || ''
   )
   const [result, setResult] = useState<string | null>(null)
   useEffect(() => {
-    localStorage.setItem('signMessage', value || '')
+    localStorage.setItem('signMessageValue', value || '')
   }, [value])
   const handleValueChange = (_value: string) => {
     setValue(_value)
@@ -2240,6 +2284,116 @@ function SignMessage (props: any) {
         {loading && <span>waiting for wallet...</span>}
         {result}
       </div>
+    </div>
+  )
+}
+
+function VerifySignature (props: any) {
+  const [hashMessage, setHashMessage] = useState<boolean>(
+    localStorage.getItem('verifySignatureHashMessage') === 'true'
+  )
+  const [message, setMessage] = useState<string>(
+    localStorage.getItem('verifySignatureMessage' || '') || ''
+  )
+  const [signature, setSignature] = useState<string>(
+    localStorage.getItem('verifySignatureSignature' || '') || ''
+  )
+  const [address, setAddress] = useState<string>(
+    localStorage.getItem('verifySignatureAddress' || '') || ''
+  )
+  const [result, setResult] = useState<string | null>(null)
+  useEffect(() => {
+    localStorage.setItem('verifySignatureMessage', message || '')
+  }, [message])
+  useEffect(() => {
+    localStorage.setItem('verifySignatureSignature', signature || '')
+  }, [signature])
+  useEffect(() => {
+    localStorage.setItem('verifySignatureAddress', address || '')
+  }, [address])
+  useEffect(() => {
+    localStorage.setItem('verifySignatureHashMessage', `${hashMessage || ''}`)
+  }, [hashMessage])
+  const handleMessageChange = (_value: string) => {
+    setMessage(_value)
+  }
+  const handleSignatureChange = (_value: string) => {
+    setSignature(_value)
+  }
+  const handleAddressChange = (_value: string) => {
+    setAddress(_value)
+  }
+  const updateHashMessage = (event: any) => {
+    const checked = event.target.checked
+    setHashMessage(checked)
+  }
+  const recover = async () => {
+    try {
+      setResult(null)
+      if (!message) {
+        throw new Error('message is required')
+      }
+      if (!signature) {
+        throw new Error('signature is required')
+      }
+      let _message = message
+      if (hashMessage) {
+        _message = utils.hashMessage(message)
+      }
+      const recoveredAddress = utils.recoverAddress(_message, signature)
+      if (address) {
+        const verified = recoveredAddress === utils.getAddress(address)
+        setResult(`${verified}`)
+      } else {
+        setResult(recoveredAddress)
+      }
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    recover()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Message</label>
+        <TextInput
+          value={message}
+          onChange={handleMessageChange}
+          placeholder='message'
+          variant='textarea'
+        />
+        <div>
+          <input
+            type='checkbox'
+            checked={hashMessage}
+            onChange={updateHashMessage}
+          />
+          hash message
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <label>Signature</label>
+          <TextInput
+            value={signature}
+            onChange={handleSignatureChange}
+            placeholder='signature'
+          />
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <label>Address</label>
+          <TextInput
+            value={address}
+            onChange={handleAddressChange}
+            placeholder='address'
+          />
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>verify</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>{result}</div>
     </div>
   )
 }
@@ -2836,9 +2990,19 @@ function App () {
           <PublicKeyToAddress />
         </section>
       </Fieldset>
+      <Fieldset legend='Hash Message'>
+        <section>
+          <HashMessage />
+        </section>
+      </Fieldset>
       <Fieldset legend='Sign Message'>
         <section>
           <SignMessage wallet={wallet} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Verify signature'>
+        <section>
+          <VerifySignature />
         </section>
       </Fieldset>
       <Fieldset legend='Batch ETH Balance Checker'>
