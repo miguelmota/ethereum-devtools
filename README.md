@@ -1,6 +1,6 @@
 # Ethereum DevTools GUI
 
-> A simple GUI of Ethereum debugging tools and utilities
+> A simple GUI of Ethereum tools and utilities for debugging
 
 [![License](http://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/miguelmota/ethereum-devtools/master/LICENSE)
 
@@ -10,7 +10,7 @@
 
 ## Tools
 
-- ABI caller
+- ABI method caller
 - ABI event viewer
 - Tx input data decoder
 - Unit converter
