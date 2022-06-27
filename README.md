@@ -2,6 +2,8 @@
 
 > A simple GUI of Ethereum debugging tools and utilities
 
+[![License](http://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/miguelmota/ethereum-devtools/master/LICENSE)
+
 ## Demo
 
 [https://lab.miguelmota.com/ethereum-devtools](https://lab.miguelmota.com/ethereum-devtools)
@@ -47,4 +49,6 @@ npm run start
 
 ## License
 
-[MIT](LICENSE)
+Released under the [MIT](./LICENSE) license.
+
+© [Miguel Mota](https://github.com/miguelmota)
