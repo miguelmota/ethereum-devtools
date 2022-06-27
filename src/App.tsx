@@ -2836,9 +2836,9 @@ function App () {
         </section>
       </Fieldset>
       <footer style={{ margin: '1rem 0' }}>
-        © 2020{' '}
+        © 2022{' '}
         <a
-          href='https://miguelmota.com'
+          href='https://github.com/miguelmota'
           target='_blank'
           rel='noopener noreferrer'
         >
