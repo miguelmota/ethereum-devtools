@@ -228,6 +228,8 @@ function CustomTx (props: any = {}) {
         res = await wallet.populateTransaction(txData)
       } else if (methodType === 'estimate') {
         res = await wallet.estimateGas(txData)
+      } else if (methodType === 'sign') {
+        res = await wallet.signTransaction(txData)
       } else {
         res = await wallet.sendTransaction(txData)
       }
@@ -255,7 +257,7 @@ function CustomTx (props: any = {}) {
               checked={methodType === 'broadcast'}
               onChange={updateMethodType}
             />
-            broadcast
+            sign & broadcast
           </label>
 
           <label>
@@ -281,6 +283,16 @@ function CustomTx (props: any = {}) {
           <label>
             <input
               type='radio'
+              value='sign'
+              checked={methodType === 'sign'}
+              onChange={updateMethodType}
+            />
+            sign tx
+          </label>
+
+          <label>
+            <input
+              type='radio'
               value='estimate'
               checked={methodType === 'estimate'}
               onChange={updateMethodType}
@@ -290,7 +302,7 @@ function CustomTx (props: any = {}) {
         </section>
       </div>
       <div>
-        <button onClick={send}>send</button>
+        <button onClick={send}>submit</button>
       </div>
       <pre>{result}</pre>
       {txLink && (
@@ -298,6 +310,55 @@ function CustomTx (props: any = {}) {
           {txLink}
         </a>
       )}
+    </div>
+  )
+}
+
+function SendRawTx (props: any) {
+  const { provider } = props
+  const [value, setValue] = useState(
+    localStorage.getItem('sendRawTxValue') || ''
+  )
+  const [result, setResult] = useState<any>(null)
+  useEffect(() => {
+    localStorage.setItem('sendRawTxValue', value || '')
+  }, [value])
+  const handleValueChange = (value: string) => {
+    setValue(value)
+  }
+  const sendTx = async () => {
+    try {
+      setResult(null)
+      if (!value) {
+        throw new Error('data is required')
+      }
+      const _tx = await provider.sendTransaction(value)
+      setResult(_tx)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    sendTx()
+  }
+  const output = JSON.stringify(result, null, 2)
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Signed raw transaction (hex)</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='0x...'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>send</button>
+        </div>
+      </form>
+      <div>
+        <pre>{output}</pre>
+      </div>
     </div>
   )
 }
@@ -2898,6 +2959,11 @@ function App () {
       <Fieldset legend='Custom transaction'>
         <section>
           <CustomTx wallet={wallet} network={networkName} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Send raw transaction'>
+        <section>
+          <SendRawTx provider={rpcProvider} />
         </section>
       </Fieldset>
       <Fieldset legend='Get fee data'>
