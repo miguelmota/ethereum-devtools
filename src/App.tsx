@@ -13,6 +13,7 @@ import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CID from 'cids'
 
+const fourByte = require('4byte')
 const Buffer = require('buffer/').Buffer
 const sigUtil = require('eth-sig-util')
 const zksync = require('zksync')
@@ -2777,6 +2778,54 @@ function GasCostCalculator (props: any) {
   )
 }
 
+function FourByteDictionary (props: any) {
+  const [value, setValue] = useState(
+    localStorage.getItem('fourByteValue') || ''
+  )
+  const [result, setResult] = useState<any>(null)
+  useEffect(() => {
+    localStorage.setItem('fourByteValue', value || '')
+  }, [value])
+  const handleValueChange = (value: string) => {
+    setValue(value)
+  }
+  const update = async () => {
+    try {
+      setResult(null)
+      if (!value) {
+        throw new Error('method signature is required')
+      }
+      const res = await fourByte(value)
+      setResult(res)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    update()
+  }
+  const output = JSON.stringify(result, null, 2)
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Method signature</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='0xaabbccdd'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>find</button>
+        </div>
+      </form>
+      <div>
+        <pre>{output}</pre>
+      </div>
+    </div>
+  )
+}
+
 function App () {
   const [useWeb3, setUseWeb3] = useState<boolean>(() => {
     const cached = localStorage.getItem('useWeb3')
@@ -3269,6 +3318,11 @@ function App () {
       <Fieldset legend='Data decoder'>
         <section>
           <DataDecoder abi={abi} abiName={selectedAbi} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='4byte dictionary'>
+        <section>
+          <FourByteDictionary />
         </section>
       </Fieldset>
       <Fieldset legend='Send ETH'>

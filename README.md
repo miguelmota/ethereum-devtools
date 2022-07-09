@@ -21,6 +21,7 @@
 - Tx input data decoder
   - decode constructor callata
   - decode tx calldata
+- 4byte dictionary lookup
 - Unit converter
 - Eth sender
 - Custom tx tools
