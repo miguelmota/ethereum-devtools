@@ -3026,8 +3026,15 @@ function App () {
         throw new Error('ABI content is required')
       }
       const name = newAbiName.trim()
+      let abiJson = JSON.parse(customAbi.trim())
+      if (!Array.isArray(abiJson)) {
+        if (Array.isArray(abiJson.abi)) {
+          abiJson = abiJson.abi
+        }
+      }
+
       const newAbi = {
-        [name]: JSON.parse(customAbi.trim())
+        [name]: abiJson
       }
       const _customAbis = { ...customAbis, ...newAbi }
       localStorage.setItem('customAbis', JSON.stringify(_customAbis))
