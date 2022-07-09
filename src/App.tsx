@@ -12,6 +12,7 @@ import {
 import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CID from 'cids'
+import { useInterval } from 'react-use'
 
 const Buffer = require('buffer/').Buffer
 const sigUtil = require('eth-sig-util')
@@ -2585,16 +2586,20 @@ function DecryptMessage (props: any) {
 }
 
 function GasCostCalculator (props: any) {
+  const { provider } = props
+  const defaultGasLimit = '2100'
   const [ethUsdPrice, setEthUsdPrice] = useState(
-    localStorage.getItem('gasCostCalculatorEthUsdPrice') || '1500'
+    localStorage.getItem('gasCostCalculatorEthUsdPrice') || ''
   )
   const [gasPrice, setGasPrice] = useState(
-    localStorage.getItem('gasCostCalculatorGasPrice') || '22'
+    localStorage.getItem('gasCostCalculatorGasPrice') || ''
   )
   const [gasLimit, setGasLimit] = useState(
-    localStorage.getItem('gasCostCalculatorGasLimit') || '2100'
+    localStorage.getItem('gasCostCalculatorGasLimit') || defaultGasLimit
   )
   const [result, setResult] = useState<any>('')
+  const [usingCustomGasPrice, setUsingCustomGasPrice] = useState(false)
+  const [usingCustomEthUsdPrice, setUsingCustomEthUsdPrice] = useState(false)
   useEffect(() => {
     localStorage.setItem('gasCostCalculatorEthUsdPrice', ethUsdPrice || '')
   }, [ethUsdPrice])
@@ -2605,12 +2610,62 @@ function GasCostCalculator (props: any) {
     localStorage.setItem('gasCostCalculatorGasLimit', gasLimit || '')
   }, [gasLimit])
 
+  async function getGasPrice () {
+    try {
+      const _gasPrice = await provider.getGasPrice()
+      if (!gasPrice && !usingCustomGasPrice) {
+        setGasPrice(utils.formatUnits(_gasPrice.toString(), 9))
+      }
+    } catch (err) {}
+  }
+
+  async function getEthUsdPrice () {
+    try {
+      const res = await fetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+      )
+      const json = await res.json()
+      const _ethUsdPrice = json.ethereum.usd.toString()
+      if (!ethUsdPrice && !usingCustomEthUsdPrice) {
+        setEthUsdPrice(_ethUsdPrice)
+      }
+    } catch (err) {}
+  }
+
+  useEffect(() => {
+    getGasPrice()
+  }, [provider, getGasPrice, usingCustomGasPrice])
+
+  useEffect(() => {
+    getEthUsdPrice()
+  }, [provider, getEthUsdPrice, usingCustomEthUsdPrice])
+
+  useEffect(() => {
+    if (
+      !usingCustomGasPrice &&
+      !usingCustomEthUsdPrice &&
+      gasPrice &&
+      ethUsdPrice &&
+      gasLimit === defaultGasLimit
+    ) {
+      calculate()
+    }
+  }, [
+    usingCustomGasPrice,
+    usingCustomEthUsdPrice,
+    gasPrice,
+    ethUsdPrice,
+    gasLimit
+  ])
+
   async function reset (event: any) {
     event.preventDefault()
-    setEthUsdPrice('1500')
-    setGasPrice('22')
-    setGasLimit('21000')
+    setEthUsdPrice('')
+    setGasPrice('')
+    setGasLimit(defaultGasLimit)
     setResult('')
+    setUsingCustomGasPrice(false)
+    setUsingCustomEthUsdPrice(false)
   }
 
   async function calculate () {
@@ -2637,9 +2692,11 @@ function GasCostCalculator (props: any) {
   }
   const handleEthUsdPriceChange = (value: string) => {
     setEthUsdPrice(value)
+    setUsingCustomEthUsdPrice(true)
   }
   const handleGasPriceChange = (value: string) => {
     setGasPrice(value)
+    setUsingCustomGasPrice(true)
   }
   const handleGasLimitChange = (value: string) => {
     setGasLimit(value)
@@ -2676,7 +2733,7 @@ function GasCostCalculator (props: any) {
           <button onClick={reset}>reset</button>
         </div>
       </form>
-      <div style={{ marginTop: '1rem' }}>Gas required (USD): {result}</div>
+      <div style={{ marginTop: '1rem' }}>Gas cost (USD): {result}</div>
     </div>
   )
 }
@@ -3175,7 +3232,7 @@ function App () {
       </Fieldset>
       <Fieldset legend='Gas Cost Calculator'>
         <section>
-          <GasCostCalculator />
+          <GasCostCalculator provider={rpcProvider} />
         </section>
       </Fieldset>
       <Fieldset legend='Unit converter'>
