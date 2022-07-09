@@ -13,6 +13,8 @@ import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CID from 'cids'
 
+const Buffer = require('buffer/').Buffer
+const sigUtil = require('eth-sig-util')
 const zksync = require('zksync')
 const etherConverter = require('ether-converter') // TODO: types
 const privateKeyToAddress = require('ethereum-private-key-to-address')
@@ -351,6 +353,7 @@ function SendRawTx (props: any) {
           value={value}
           onChange={handleValueChange}
           placeholder='0x...'
+          variant='textarea'
         />
         <div style={{ marginTop: '0.5rem' }}>
           <button type='submit'>send</button>
@@ -2459,6 +2462,128 @@ function VerifySignature (props: any) {
   )
 }
 
+function EncryptMessage (props: any) {
+  const provider = (window as any).ethereum
+  const [value, setValue] = useState(localStorage.getItem('encryptValue') || '')
+  const [result, setResult] = useState<any>('')
+  useEffect(() => {
+    localStorage.setItem('encryptValue', value || '')
+  }, [value])
+  async function getPublicKey () {
+    const accounts = await provider.enable()
+    const encryptionPublicKey = await provider.request({
+      method: 'eth_getEncryptionPublicKey',
+      params: [accounts[0]]
+    })
+
+    return encryptionPublicKey
+  }
+  async function encrypt (msg: string) {
+    const encryptionPublicKey = await getPublicKey()
+    const buf = Buffer.from(
+      JSON.stringify(
+        sigUtil.encrypt(
+          encryptionPublicKey,
+          { data: msg },
+          'x25519-xsalsa20-poly1305'
+        )
+      ),
+      'utf8'
+    )
+
+    return '0x' + buf.toString('hex')
+  }
+
+  async function encryptHandler () {
+    try {
+      setResult('')
+      const encMsg = await encrypt(value)
+      setResult(encMsg)
+    } catch (err) {
+      alert(err.message)
+      console.error(err)
+    }
+  }
+  const handleValueChange = (value: string) => {
+    setValue(value)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    encryptHandler()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Message to encrypt with public key</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='message'
+          variant='textarea'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>encrypt</button>
+        </div>
+      </form>
+      <div style={{ marginBottom: '1rem' }}>{result}</div>
+    </div>
+  )
+}
+
+function DecryptMessage (props: any) {
+  const provider = (window as any).ethereum
+  const [value, setValue] = useState(localStorage.getItem('decryptValue') || '')
+  const [result, setResult] = useState<any>('')
+  useEffect(() => {
+    localStorage.setItem('decryptValue', value || '')
+  }, [value])
+
+  async function decrypt (encMsg: string) {
+    const accounts = await provider.enable()
+    const decMsg = await provider.request({
+      method: 'eth_decrypt',
+      params: [encMsg, accounts[0]]
+    })
+
+    return decMsg
+  }
+
+  async function decryptHandler () {
+    try {
+      setResult('')
+      const decMsg = await decrypt(value)
+      setResult(decMsg)
+    } catch (err) {
+      alert(err.message)
+      console.error(err)
+    }
+  }
+  const handleValueChange = (value: string) => {
+    setValue(value)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    decryptHandler()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Encrypted message to decrypt with private key (hex)</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='0x...'
+          variant='textarea'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>decrypt</button>
+        </div>
+      </form>
+      <div style={{ marginBottom: '1rem' }}>{result}</div>
+    </div>
+  )
+}
+
 function App () {
   const [useWeb3, setUseWeb3] = useState<boolean>(() => {
     const cached = localStorage.getItem('useWeb3')
@@ -3069,6 +3194,16 @@ function App () {
       <Fieldset legend='Verify signature'>
         <section>
           <VerifySignature />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Encrypt Message'>
+        <section>
+          <EncryptMessage />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Decrypt Message'>
+        <section>
+          <DecryptMessage />
         </section>
       </Fieldset>
       <Fieldset legend='Batch ETH Balance Checker'>

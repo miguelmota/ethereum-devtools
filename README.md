@@ -45,6 +45,8 @@
 - Hash message
 - Sign message
 - Verify signature
+- Encrypt message with public key
+- Decrypt message with private key
 - Batch Eth balance checker
 - Batch Erc20 balance checker
 - Batch EkSync balance checker
