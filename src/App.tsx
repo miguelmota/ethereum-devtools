@@ -12,7 +12,6 @@ import {
 import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CID from 'cids'
-import { useInterval } from 'react-use'
 
 const Buffer = require('buffer/').Buffer
 const sigUtil = require('eth-sig-util')
@@ -449,6 +448,7 @@ function AbiMethodForm (props: any = {}) {
   const [nonce, setNonce] = useState<string>(() => {
     return localStorage.getItem('nonce') || ''
   })
+  const [methodSig, setMethodSig] = useState<string>('')
   const [error, setError] = useState<string>('')
   const [result, setResult] = useState('')
   const [callStatic, setCallStatic] = useState<boolean>(() => {
@@ -527,6 +527,21 @@ function AbiMethodForm (props: any = {}) {
     nonce,
     args
   ])
+
+  useEffect(() => {
+    try {
+      setMethodSig('')
+      const iface = new utils.Interface([abiObj])
+      const keys = Object.keys(iface.functions)
+      if (keys.length) {
+        const _methodSig = `0x${(window as any)
+          .keccak256(keys[0])
+          .toString('hex')
+          .slice(0, 8)}`
+        setMethodSig(_methodSig)
+      }
+    } catch (err) {}
+  }, [abiObj])
 
   if (abiObj.type !== 'function') {
     return null
@@ -614,6 +629,11 @@ function AbiMethodForm (props: any = {}) {
           {stateMutability ? `(${stateMutability})` : null} (
           {isWritable ? 'writable' : 'read-only'})
         </label>
+        {!!methodSig && (
+          <div style={{ margin: '0.5rem 0' }}>
+            method signature: <code>{methodSig}</code>
+          </div>
+        )}
         {abiObj?.inputs?.map((input: any, i: number) => {
           const convertTextToHex = (event: SyntheticEvent) => {
             event.preventDefault()
@@ -767,6 +787,25 @@ function AbiMethodForm (props: any = {}) {
 function AbiEventForm (props: any = {}) {
   const abiObj = props.abi
   const inputs = abiObj?.inputs || []
+  const [eventSignature, setEventSignature] = useState<string>('')
+
+  useEffect(() => {
+    try {
+      setEventSignature('')
+      if (abiObj.signature) {
+        setEventSignature(abiObj.signature)
+      } else {
+        const iface = new utils.Interface([abiObj])
+        const keys = Object.keys(iface.events)
+        if (keys.length) {
+          const _methodSig = `0x${(window as any)
+            .keccak256(keys[0])
+            .toString('hex')}`
+          setEventSignature(_methodSig)
+        }
+      }
+    } catch (err) {}
+  }, [abiObj])
 
   return (
     <div>
@@ -788,7 +827,7 @@ function AbiEventForm (props: any = {}) {
       </ol>
       <div>
         <label>Signature</label>
-        {abiObj.signature}
+        {eventSignature}
       </div>
     </div>
   )
