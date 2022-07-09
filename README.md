@@ -26,6 +26,7 @@
   - sign tx
   - estimate gas
 - Send raw tx
+- Gas cost calculator
 - Get fee data
 - Get tx receipt
 - Get block info

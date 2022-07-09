@@ -2525,7 +2525,7 @@ function EncryptMessage (props: any) {
           <button type='submit'>encrypt</button>
         </div>
       </form>
-      <div style={{ marginBottom: '1rem' }}>{result}</div>
+      <div style={{ marginTop: '1rem' }}>{result}</div>
     </div>
   )
 }
@@ -2579,7 +2579,104 @@ function DecryptMessage (props: any) {
           <button type='submit'>decrypt</button>
         </div>
       </form>
-      <div style={{ marginBottom: '1rem' }}>{result}</div>
+      <div style={{ marginTop: '1rem' }}>{result}</div>
+    </div>
+  )
+}
+
+function GasCostCalculator (props: any) {
+  const [ethUsdPrice, setEthUsdPrice] = useState(
+    localStorage.getItem('gasCostCalculatorEthUsdPrice') || '1500'
+  )
+  const [gasPrice, setGasPrice] = useState(
+    localStorage.getItem('gasCostCalculatorGasPrice') || '22'
+  )
+  const [gasLimit, setGasLimit] = useState(
+    localStorage.getItem('gasCostCalculatorGasLimit') || '2100'
+  )
+  const [result, setResult] = useState<any>('')
+  useEffect(() => {
+    localStorage.setItem('gasCostCalculatorEthUsdPrice', ethUsdPrice || '')
+  }, [ethUsdPrice])
+  useEffect(() => {
+    localStorage.setItem('gasCostCalculatorGasPrice', gasPrice || '')
+  }, [gasPrice])
+  useEffect(() => {
+    localStorage.setItem('gasCostCalculatorGasLimit', gasLimit || '')
+  }, [gasLimit])
+
+  async function reset (event: any) {
+    event.preventDefault()
+    setEthUsdPrice('1500')
+    setGasPrice('22')
+    setGasLimit('21000')
+    setResult('')
+  }
+
+  async function calculate () {
+    try {
+      setResult('')
+      const _gasPrice = Number(gasPrice)
+      const _gasLimit = Number(gasLimit)
+      const _ethUsdPrice = Number(ethUsdPrice)
+      const requiredGas = Number(
+        utils.formatUnits(
+          utils.parseUnits(
+            (_gasPrice * _gasLimit * _ethUsdPrice).toString(),
+            9
+          ),
+          18
+        )
+      )
+      const result = Number(requiredGas.toFixed(2)).toString()
+      setResult(result)
+    } catch (err) {
+      alert(err.message)
+      console.error(err)
+    }
+  }
+  const handleEthUsdPriceChange = (value: string) => {
+    setEthUsdPrice(value)
+  }
+  const handleGasPriceChange = (value: string) => {
+    setGasPrice(value)
+  }
+  const handleGasLimitChange = (value: string) => {
+    setGasLimit(value)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    calculate()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>ETH/USD</label>
+        <TextInput
+          value={ethUsdPrice}
+          onChange={handleEthUsdPriceChange}
+          placeholder='1500'
+        />
+        <label>Gas price (gwei)</label>
+        <TextInput
+          value={gasPrice}
+          onChange={handleGasPriceChange}
+          placeholder='22'
+        />
+        <label>Gas required (gasLimit)</label>
+        <TextInput
+          value={gasLimit}
+          onChange={handleGasLimitChange}
+          placeholder='21000'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>calculate</button>
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button onClick={reset}>reset</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>Gas required (USD): {result}</div>
     </div>
   )
 }
@@ -3074,6 +3171,11 @@ function App () {
       <Fieldset legend='Send ETH'>
         <section>
           <SendEth wallet={wallet} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Gas Cost Calculator'>
+        <section>
+          <GasCostCalculator />
         </section>
       </Fieldset>
       <Fieldset legend='Unit converter'>
