@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState, SyntheticEvent } from 'react'
+import React, { useMemo, useEffect, useState, SyntheticEvent, useCallback } from 'react'
 import {
   ethers,
   BigNumber,
@@ -532,14 +532,18 @@ function AbiMethodForm (props: any = {}) {
   useEffect(() => {
     try {
       setMethodSig('')
-      const iface = new utils.Interface([abiObj])
-      const keys = Object.keys(iface.functions)
-      if (keys.length) {
-        const _methodSig = `0x${(window as any)
-          .keccak256(keys[0])
-          .toString('hex')
-          .slice(0, 8)}`
-        setMethodSig(_methodSig)
+      if (abiObj.signature) {
+        setMethodSig(abiObj.signature)
+      } else {
+        const iface = new utils.Interface([abiObj])
+        const keys = Object.keys(iface.functions)
+        if (keys.length) {
+          const _methodSig = `0x${(window as any)
+            .keccak256(keys[0])
+            .toString('hex')
+            .slice(0, 8)}`
+          setMethodSig(_methodSig)
+        }
       }
     } catch (err) {}
   }, [abiObj])
@@ -2650,65 +2654,35 @@ function GasCostCalculator (props: any) {
     localStorage.setItem('gasCostCalculatorGasLimit', gasLimit || '')
   }, [gasLimit])
 
-  async function getGasPrice () {
-    try {
-      const _gasPrice = await provider.getGasPrice()
-      if (!gasPrice && !usingCustomGasPrice) {
-        setGasPrice(utils.formatUnits(_gasPrice.toString(), 9))
-      }
-    } catch (err) {}
-  }
-
-  async function getEthUsdPrice () {
-    try {
-      const res = await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
-      )
-      const json = await res.json()
-      const _ethUsdPrice = json.ethereum.usd.toString()
-      if (!ethUsdPrice && !usingCustomEthUsdPrice) {
-        setEthUsdPrice(_ethUsdPrice)
-      }
-    } catch (err) {}
-  }
-
   useEffect(() => {
-    getGasPrice()
-  }, [provider, getGasPrice, usingCustomGasPrice])
-
-  useEffect(() => {
-    getEthUsdPrice()
-  }, [provider, getEthUsdPrice, usingCustomEthUsdPrice])
-
-  useEffect(() => {
-    if (
-      !usingCustomGasPrice &&
-      !usingCustomEthUsdPrice &&
-      gasPrice &&
-      ethUsdPrice &&
-      gasLimit === defaultGasLimit
-    ) {
-      calculate()
+    async function getGasPrice () {
+      try {
+        const _gasPrice = await provider.getGasPrice()
+        if (!gasPrice && !usingCustomGasPrice) {
+          setGasPrice(utils.formatUnits(_gasPrice.toString(), 9))
+        }
+      } catch (err) {}
     }
-  }, [
-    usingCustomGasPrice,
-    usingCustomEthUsdPrice,
-    gasPrice,
-    ethUsdPrice,
-    gasLimit
-  ])
+    getGasPrice().catch(console.error)
+  }, [provider, gasPrice, usingCustomGasPrice])
 
-  async function reset (event: any) {
-    event.preventDefault()
-    setEthUsdPrice('')
-    setGasPrice('')
-    setGasLimit(defaultGasLimit)
-    setResult('')
-    setUsingCustomGasPrice(false)
-    setUsingCustomEthUsdPrice(false)
-  }
+  useEffect(() => {
+    async function getEthUsdPrice () {
+      try {
+        const res = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+        )
+        const json = await res.json()
+        const _ethUsdPrice = json.ethereum.usd.toString()
+        if (!ethUsdPrice && !usingCustomEthUsdPrice) {
+          setEthUsdPrice(_ethUsdPrice)
+        }
+      } catch (err) {}
+    }
+    getEthUsdPrice().catch(console.error)
+  }, [provider, ethUsdPrice, usingCustomEthUsdPrice])
 
-  async function calculate () {
+  const calculate = useCallback(async () => {
     try {
       setResult('')
       const _gasPrice = Number(gasPrice)
@@ -2729,7 +2703,37 @@ function GasCostCalculator (props: any) {
       alert(err.message)
       console.error(err)
     }
+  }, [ethUsdPrice, gasPrice, gasLimit])
+
+  useEffect(() => {
+    if (
+      !usingCustomGasPrice &&
+      !usingCustomEthUsdPrice &&
+      gasPrice &&
+      ethUsdPrice &&
+      gasLimit === defaultGasLimit
+    ) {
+      calculate()
+    }
+  }, [
+    usingCustomGasPrice,
+    usingCustomEthUsdPrice,
+    gasPrice,
+    ethUsdPrice,
+    gasLimit,
+    calculate
+  ])
+
+  async function reset (event: any) {
+    event.preventDefault()
+    setEthUsdPrice('')
+    setGasPrice('')
+    setGasLimit(defaultGasLimit)
+    setResult('')
+    setUsingCustomGasPrice(false)
+    setUsingCustomEthUsdPrice(false)
   }
+
   const handleEthUsdPriceChange = (value: string) => {
     setEthUsdPrice(value)
     setUsingCustomEthUsdPrice(true)
