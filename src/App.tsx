@@ -1,4 +1,10 @@
-import React, { useMemo, useEffect, useState, SyntheticEvent, useCallback } from 'react'
+import React, {
+  useMemo,
+  useEffect,
+  useState,
+  SyntheticEvent,
+  useCallback
+} from 'react'
 import {
   ethers,
   BigNumber,
@@ -13,6 +19,8 @@ import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CID from 'cids'
 
+const BlockDater = require('ethereum-block-by-date')
+const { DateTime } = require('luxon')
 const fourByte = require('4byte')
 const Buffer = require('buffer/').Buffer
 const sigUtil = require('eth-sig-util')
@@ -2830,6 +2838,67 @@ function FourByteDictionary (props: any) {
   )
 }
 
+function GetBlockNumberFromDate (props: any) {
+  const { provider } = props
+  const [loading, setLoading] = useState<boolean>(false)
+  const [value, setValue] = useState(
+    localStorage.getItem('getBlockNumberFromDateValue') || ''
+  )
+  const [result, setResult] = useState<any>(null)
+  useEffect(() => {
+    localStorage.setItem('getBlockNumberFromDateValue', value || '')
+  }, [value])
+  const handleValueChange = (value: string) => {
+    setValue(value)
+  }
+  const update = async () => {
+    try {
+      setResult(null)
+      if (!value) {
+        throw new Error('method signature is required')
+      }
+
+      setLoading(true)
+      const blockDater = new BlockDater(provider)
+      const date = DateTime.fromSeconds(Number(value)).toJSDate()
+      const info = await blockDater.getDate(date)
+      if (!info) {
+        throw new Error('could not retrieve block number')
+      }
+
+      const blockNumber = info.block
+      setResult(blockNumber.toString())
+    } catch (err) {
+      alert(err.message)
+    }
+    setLoading(false)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    update()
+  }
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Unix timestamp (seconds)</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder={`${Math.floor(Date.now() / 1000)}`}
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>get block number</button>
+        </div>
+      </form>
+      <div>
+        {loading && <span>Loading...</span>}
+        <pre>{result}</pre>
+      </div>
+    </div>
+  )
+}
+
 function App () {
   const [useWeb3, setUseWeb3] = useState<boolean>(() => {
     const cached = localStorage.getItem('useWeb3')
@@ -3367,6 +3436,11 @@ function App () {
       <Fieldset legend='Block'>
         <section>
           <GetBlock provider={rpcProvider} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Get block number from date'>
+        <section>
+          <GetBlockNumberFromDate provider={rpcProvider} />
         </section>
       </Fieldset>
       <Fieldset legend='Get code'>

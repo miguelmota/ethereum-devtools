@@ -35,6 +35,7 @@
 - Get fee data
 - Get tx receipt
 - Get block info
+- Get block number from date
 - Get address code
 - Get nonce
 - Ens resolver
