@@ -460,6 +460,9 @@ function AbiMethodForm (props: any = {}) {
   const [nonce, setNonce] = useState<string>(() => {
     return localStorage.getItem('nonce') || ''
   })
+  const [blockTag, setBlockTag] = useState<string>(() => {
+    return localStorage.getItem('blockTag') || ''
+  })
   const [methodSig, setMethodSig] = useState<string>('')
   const [error, setError] = useState<string>('')
   const [result, setResult] = useState('')
@@ -576,10 +579,18 @@ function AbiMethodForm (props: any = {}) {
       setResult('')
       const contract = new Contract(contractAddress, [abiObj], props.wallet)
 
-      const txOpts = {
+      const txOpts: any = {
         gasPrice: tx.gasPrice,
         gasLimit: tx.gasLimit,
         value: tx.value
+      }
+
+      if (callStatic && blockTag) {
+        if (!Number.isNaN(Number(blockTag))) {
+          txOpts.blockTag = Number(blockTag)
+        } else {
+          txOpts.blockTag = blockTag
+        }
       }
 
       const contractArgs = Object.values(args).reduce(
@@ -623,6 +634,10 @@ function AbiMethodForm (props: any = {}) {
   const updateNonce = (val: string) => {
     setNonce(val)
     localStorage.setItem('nonce', val)
+  }
+  const updateBlockTag = (val: string) => {
+    setBlockTag(val)
+    localStorage.setItem('blockTag', val)
   }
   const updateCallStatic = (event: any) => {
     const { checked } = event.target
@@ -756,6 +771,12 @@ function AbiMethodForm (props: any = {}) {
             value={nonce}
             placeholder={'nonce'}
             onChange={updateNonce}
+          />
+          <label>block tag (for static calls)</label>
+          <TextInput
+            value={blockTag}
+            placeholder={'latest'}
+            onChange={updateBlockTag}
           />
         </div>
         {abiObj?.outputs.length ? (
@@ -1336,22 +1357,46 @@ function GetNonce (props: any) {
   useEffect(() => {
     localStorage.setItem('getNonceAddress', address || '')
   }, [address])
+  const [pending, setPending] = useState<boolean>(() => {
+    try {
+      return Boolean(localStorage.getItem('getTransactionCountPending') ?? true)
+    } catch (err) {}
+    return true
+  })
   const [blockTag, setBlockTag] = useState<string>(() => {
     try {
-      return localStorage.getItem('getTransactionCountBlockTag') || 'pending'
+      return localStorage.getItem('getTransactionCountBlockTag') || ''
     } catch (err) {}
-    return 'pending'
+    return ''
   })
   useEffect(() => {
-    localStorage.setItem('getTransactionCountBlockTag', blockTag || 'pending')
+    localStorage.setItem('getTransactionCountBlockTag', blockTag || '')
   }, [blockTag])
+  useEffect(() => {
+    localStorage.setItem('getTransactionCountPending', `${pending}`)
+  }, [pending])
   const handleAddressChange = (value: string) => {
     setAddress(value)
   }
   const getNonce = async () => {
     try {
       setNonce(null)
-      const _nonce = await provider.getTransactionCount(address, blockTag)
+      let _blockTag: any = blockTag
+      if (blockTag) {
+        if (!Number.isNaN(Number(blockTag))) {
+          _blockTag = Number(blockTag)
+        } else {
+          _blockTag = blockTag
+        }
+      }
+      if (pending) {
+        _blockTag = 'pending'
+      }
+      if (!_blockTag) {
+        _blockTag = 'latest'
+      }
+
+      const _nonce = await provider.getTransactionCount(address, _blockTag)
       setNonce(Number(_nonce.toString()))
     } catch (err) {
       alert(err.message)
@@ -1361,11 +1406,13 @@ function GetNonce (props: any) {
     event.preventDefault()
     getNonce()
   }
-  const updateBlockTag = (event: any) => {
+  const updateBlockTagCheck = (event: any) => {
     const { checked } = event.target
-    setBlockTag(checked ? 'pending' : 'latest')
+    setPending(checked)
   }
-  const checked = blockTag === 'pending'
+  const handleBlockTag = (_value: string) => {
+    setBlockTag(_value)
+  }
   return (
     <div>
       <form onSubmit={handleSubmit}>
@@ -1375,8 +1422,19 @@ function GetNonce (props: any) {
           onChange={handleAddressChange}
           placeholder='0x'
         />
+        <label>Block number (optional)</label>
+        <TextInput
+          value={blockTag}
+          onChange={handleBlockTag}
+          placeholder='latest'
+          disabled={pending}
+        />
         <label>
-          <input type='checkbox' checked={checked} onChange={updateBlockTag} />
+          <input
+            type='checkbox'
+            checked={pending}
+            onChange={updateBlockTagCheck}
+          />
           pending
         </label>
         <div style={{ marginTop: '0.5rem' }}>
@@ -2169,13 +2227,23 @@ function BatchEthBalanceChecker (props: any) {
   const [value, setValue] = useState<string>(
     localStorage.getItem('batchEthBalanceCheckerValue' || '') || ''
   )
+  const [blockTag, setBlockTag] = useState<string>(
+    localStorage.getItem('batchEthBalanceCheckerBlockTag' || '') || ''
+  )
   const [result, setResult] = useState<string[]>([])
   useEffect(() => {
     localStorage.setItem('batchEthBalanceCheckerValue', value || '')
   }, [value])
+  useEffect(() => {
+    localStorage.setItem('batchEthBalanceCheckerBlockTag', blockTag || '')
+  }, [blockTag])
   const handleValueChange = (_value: string) => {
     setValue(_value)
   }
+  const handleBlockTag = (_value: string) => {
+    setBlockTag(_value)
+  }
+
   const update = async () => {
     try {
       setResult([])
@@ -2190,8 +2258,16 @@ function BatchEthBalanceChecker (props: any) {
         })
       const _result: string[] = []
       let total = BigNumber.from(0)
+      let _blockTag: any = undefined
+      if (blockTag) {
+        if (!Number.isNaN(Number(blockTag))) {
+          _blockTag = Number(blockTag)
+        } else {
+          _blockTag = blockTag
+        }
+      }
       for (const address of addresses) {
-        const balance = await provider.getBalance(address)
+        const balance = await provider.getBalance(address, _blockTag)
         const output = `${address} ${utils.formatEther(balance)} ETH`
         total = total.add(balance)
         _result.push(output)
@@ -2222,6 +2298,12 @@ function BatchEthBalanceChecker (props: any) {
           onChange={handleValueChange}
           placeholder='0x...'
         />
+        <label>Block number (optional)</label>
+        <TextInput
+          value={blockTag}
+          onChange={handleBlockTag}
+          placeholder='latest'
+        />
         <div style={{ marginTop: '0.5rem' }}>
           <button type='submit'>get balances</button>
         </div>
@@ -2242,6 +2324,9 @@ function BatchTokenBalanceChecker (props: any) {
     localStorage.getItem('batchTokenBalanceCheckerTokenAddress' || '') || ''
   )
   const [result, setResult] = useState<string[]>([])
+  const [blockTag, setBlockTag] = useState<string>(
+    localStorage.getItem('batchTokenBalanceCheckerBlockTag' || '') || ''
+  )
   useEffect(() => {
     localStorage.setItem('batchTokenBalanceCheckerValue', value || '')
   }, [value])
@@ -2251,11 +2336,17 @@ function BatchTokenBalanceChecker (props: any) {
       tokenAddress || ''
     )
   }, [tokenAddress])
+  useEffect(() => {
+    localStorage.setItem('batchTokenBalanceCheckerBlockTag', blockTag || '')
+  }, [blockTag])
   const handleValueChange = (_value: string) => {
     setValue(_value)
   }
   const handleTokenAddressChange = (_value: string) => {
     setTokenAddress(_value)
+  }
+  const handleBlockTag = (_value: string) => {
+    setBlockTag(_value)
   }
   const update = async () => {
     try {
@@ -2276,8 +2367,18 @@ function BatchTokenBalanceChecker (props: any) {
         })
       const _result: string[] = []
       let total = BigNumber.from(0)
+      let opts: any = {}
+      if (blockTag) {
+        let _blockTag: any = undefined
+        if (!Number.isNaN(Number(blockTag))) {
+          _blockTag = Number(blockTag)
+        } else {
+          _blockTag = blockTag
+        }
+        opts = { blockTag: _blockTag }
+      }
       for (const address of addresses) {
-        const balance = await contract.balanceOf(address)
+        const balance = await contract.balanceOf(address, opts)
         const output = `${address} ${utils.formatUnits(
           balance,
           decimals
@@ -2321,6 +2422,12 @@ function BatchTokenBalanceChecker (props: any) {
           value={value}
           onChange={handleValueChange}
           placeholder='0x...'
+        />
+        <label>Block number (optional)</label>
+        <TextInput
+          value={blockTag}
+          onChange={handleBlockTag}
+          placeholder='latest'
         />
         <div style={{ marginTop: '0.5rem' }}>
           <button type='submit'>get balances</button>
@@ -3075,7 +3182,7 @@ function App () {
   const [rpcProviderUrl, setRpcProviderUrl] = useState<string>(() => {
     return localStorage.getItem('rpcProviderUrl') || ''
   })
-  const [rpcProvider, setRpcProvider] = useState<any>(() => {
+  const [rpcProvider, setRpcProvider] = useState<providers.Provider>(() => {
     try {
       const net = localStorage.getItem('networkOption') || 'mainnet'
       const url = localStorage.getItem('rpcProviderUrl')
