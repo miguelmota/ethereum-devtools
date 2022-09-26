@@ -13,11 +13,13 @@
 - ABI viewer
   - show methods
   - show method signatures
-  - show events
+  - show event params
   - show event topic signatures
 - ABI method caller
   - sign and broadcast
   - static call
+- ABI event logs
+  - get event logs
 - Tx input data decoder
   - decode constructor callata
   - decode tx calldata

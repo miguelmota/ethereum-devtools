@@ -33,6 +33,8 @@ const base58 = require('bs58') // TODO: types
 const contentHash = require('content-hash') // TODO: types
 //const namehash = require('eth-ens-namehash') // namehash.hash(...)
 const contentHash2 = require('@ensdomains/content-hash')
+
+  // utils available as globals
 ;(window as any).BigNumber = BigNumber
 ;(window as any).ethers = ethers
 ;(window as any).utils = utils
@@ -40,6 +42,7 @@ const contentHash2 = require('@ensdomains/content-hash')
 ;(window as any).contentHash = contentHash
 ;(window as any).base58 = base58
 ;(window as any).contentHash2 = contentHash2
+;(window as any).DateTime = DateTime
 
 const networkOptions = [
   'injected',
@@ -798,9 +801,44 @@ function AbiMethodForm (props: any = {}) {
 }
 
 function AbiEventForm (props: any = {}) {
-  const abiObj = props.abi
+  const { contractAddress, provider, abi: abiObj } = props
   const inputs = abiObj?.inputs || []
   const [eventSignature, setEventSignature] = useState<string>('')
+  const [startBlock, setStartBlock] = useState<string>(() => {
+    return localStorage.getItem('abiEventStartBlock') || ''
+  })
+  const [endBlock, setEndBlock] = useState<string>(() => {
+    return localStorage.getItem('abiEventEndBlock') || ''
+  })
+  const [filterArgs, setFilterArgs] = useState<string>(() => {
+    return localStorage.getItem('abiEventFilterArgs') || ''
+  })
+  const [loading, setLoading] = useState<boolean>(false)
+  const [result, setResult] = useState<any>(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('abiEventStartBlock', startBlock)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [startBlock])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('abiEventEndBlock', endBlock)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [endBlock])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('abiEventFilterArgs', filterArgs)
+    } catch (err) {
+      console.error(err)
+    }
+  }, [filterArgs])
 
   useEffect(() => {
     try {
@@ -819,6 +857,48 @@ function AbiEventForm (props: any = {}) {
       }
     } catch (err) {}
   }, [abiObj])
+
+  const fetchEvents = async () => {
+    const contract = new Contract(contractAddress, [abiObj], provider)
+    const startBlockNumber = Number(startBlock)
+    const endBlockNumber = Number(endBlock)
+    let args = []
+    try {
+      if (filterArgs) {
+        args = JSON.parse(filterArgs)
+      }
+    } catch (err) {
+      console.error(err)
+    }
+    const filter = contract.filters[abiObj.name](...args)
+    const logs = contract.queryFilter(filter, startBlockNumber, endBlockNumber)
+    return logs
+  }
+
+  const handleSubmit = async (event: any) => {
+    event.preventDefault()
+    try {
+      setLoading(true)
+      setResult(null)
+      const result = await fetchEvents()
+      setResult(result)
+    } catch (err) {
+      alert(err.message)
+    }
+    setLoading(false)
+  }
+
+  const handleStartBlock = (value: string) => {
+    setStartBlock(value)
+  }
+
+  const handleEndBlock = (value: string) => {
+    setEndBlock(value)
+  }
+
+  const handleFilterArgs = (value: string) => {
+    setFilterArgs(value)
+  }
 
   return (
     <div>
@@ -841,6 +921,83 @@ function AbiEventForm (props: any = {}) {
       <div>
         <label>Signature</label>
         {eventSignature}
+      </div>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginTop: '0.5rem' }}>
+          <label>
+            Start block{' '}
+            <button
+              onClick={async (event: SyntheticEvent) => {
+                event.preventDefault()
+                try {
+                  const { number } = await provider.getBlock()
+                  setStartBlock(number.toString())
+                } catch (err) {
+                  alert(err.message)
+                }
+              }}
+            >
+              latest
+            </button>
+          </label>
+          <TextInput
+            value={startBlock}
+            onChange={handleStartBlock}
+            placeholder='0'
+          />
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <label>
+            End block{' '}
+            <button
+              onClick={async (event: SyntheticEvent) => {
+                event.preventDefault()
+                try {
+                  const { number } = await provider.getBlock()
+                  setEndBlock(number.toString())
+                } catch (err) {
+                  alert(err.message)
+                }
+              }}
+            >
+              latest
+            </button>
+          </label>
+          <TextInput
+            value={endBlock}
+            onChange={handleEndBlock}
+            placeholder='0'
+          />
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <label>
+            Arguments (optional){' '}
+            <small>
+              <a
+                href='https://docs.ethers.io/v5/concepts/events/'
+                target='_blank'
+                rel='noopener noreferrer'
+              >
+                examples
+              </a>
+            </small>
+          </label>
+          <TextInput
+            value={filterArgs}
+            onChange={handleFilterArgs}
+            placeholder={`e.g. [fromAddress, toAddress]
+e.g. [null, [myAddress, otherAddress]]`}
+            variant='textarea'
+          />
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>get events</button>
+        </div>
+      </form>
+      <div>
+        {loading && 'loading...'}
+        <div>{!!result && `events: ${result.length}`}</div>
+        <pre>{!!result && JSON.stringify(result, null, 2)}</pre>
       </div>
     </div>
   )
@@ -3249,7 +3406,14 @@ function App () {
       const filtered = parsed.filter((x: any) => x.name === selectedAbiEvent)
       if (!filtered.length) return null
       const obj = filtered[0]
-      return <AbiEventForm key={obj.name} abi={obj} />
+      return (
+        <AbiEventForm
+          key={obj.name}
+          abi={obj}
+          contractAddress={contractAddress}
+          provider={rpcProvider}
+        />
+      )
     } catch (err) {
       // noop
     }
