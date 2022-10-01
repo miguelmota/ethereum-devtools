@@ -35,6 +35,7 @@
 - Send raw tx
 - Gas cost calculator
 - Get fee data
+- Get tx
 - Get tx receipt
 - Get block info
 - Get block number from date

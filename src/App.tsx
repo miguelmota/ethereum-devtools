@@ -1191,6 +1191,50 @@ function SendEth (props: any) {
   )
 }
 
+function GetTx (props: any) {
+  const { provider } = props
+  const [txHash, setTxHash] = useState(localStorage.getItem('getTxHash'))
+  const [result, setResult] = useState(null)
+  useEffect(() => {
+    localStorage.setItem('getTxHash', txHash || '')
+  }, [txHash])
+  const handleTxHashChange = (value: string) => {
+    setTxHash(value)
+  }
+  const getTx = async () => {
+    try {
+      setResult(null)
+      const _tx = await provider.getTransaction(txHash)
+      setResult(_tx)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    getTx()
+  }
+  const _result = JSON.stringify(result, null, 2)
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Transaction hash</label>
+        <TextInput
+          value={txHash}
+          onChange={handleTxHashChange}
+          placeholder='hash'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>get transaction</button>
+        </div>
+      </form>
+      <div>
+        <pre>{_result}</pre>
+      </div>
+    </div>
+  )
+}
+
 function TxReceipt (props: any) {
   const { provider } = props
   const [txHash, setTxHash] = useState(localStorage.getItem('txReceiptHash'))
@@ -3699,12 +3743,17 @@ function App () {
           <GetFeeData provider={rpcProvider} />
         </section>
       </Fieldset>
-      <Fieldset legend='Transaction Receipt'>
+      <Fieldset legend='Get Transaction'>
+        <section>
+          <GetTx provider={rpcProvider} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Get Transaction Receipt'>
         <section>
           <TxReceipt provider={rpcProvider} />
         </section>
       </Fieldset>
-      <Fieldset legend='Block'>
+      <Fieldset legend='Get Block'>
         <section>
           <GetBlock provider={rpcProvider} />
         </section>
@@ -3734,7 +3783,7 @@ function App () {
           <EnsReverseResolver provider={rpcProvider} />
         </section>
       </Fieldset>
-      <Fieldset legend='ENS avatar'>
+      <Fieldset legend='Get ENS avatar'>
         <section>
           <EnsAvatar provider={rpcProvider} />
         </section>
