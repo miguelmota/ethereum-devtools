@@ -1006,8 +1006,12 @@ function AbiEventForm (props: any = {}) {
           <TextInput
             value={filterArgs}
             onChange={handleFilterArgs}
-            placeholder={`e.g. [fromAddress, toAddress]
-e.g. [null, [myAddress, otherAddress]]`}
+            placeholder={`pass event args as array
+e.g. for erc20 transfer events:
+     [fromAddress, toAddress] // filter by from/to address
+     [null, [toMyAddress, orToOtherAddress]] // filter by to address
+`.trim()
+}
             variant='textarea'
           />
         </div>
