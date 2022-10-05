@@ -388,9 +388,15 @@ function Select (props: any = {}) {
   return (
     <select value={props.selected} onChange={handleChange}>
       {props.options.map((option: any, i: number) => {
+        let label = option
+        let value = option
+        if (typeof option === 'object') {
+          label = option.label
+          value = option.value
+        }
         return (
-          <option key={i} value={option}>
-            {option}
+          <option key={i} value={value}>
+            {label}
           </option>
         )
       })}
@@ -1010,8 +1016,7 @@ function AbiEventForm (props: any = {}) {
 e.g. for erc20 transfer events:
      [fromAddress, toAddress] // filter by from/to address
      [null, [toMyAddress, orToOtherAddress]] // filter by to address
-`.trim()
-}
+`.trim()}
             variant='textarea'
           />
         </div>
@@ -3496,9 +3501,17 @@ function App () {
       const parsed = JSON.parse(abi)
       const options = parsed
         .map((obj: any) => {
-          return obj.type === 'function' ? obj.name : null
+          let value = obj.type === 'function' ? obj.name : null
+          let label = value
+          if (value && obj.signature) {
+            label = `${value} (${obj.signature})`
+          }
+          return {
+            label,
+            value
+          }
         })
-        .filter((x: any) => x)
+        .filter((x: any) => x.value)
       const handleChange = (value: string) => {
         setSelectedAbiMethod(value)
         localStorage.setItem('selectedAbiMethod', value)
@@ -3517,9 +3530,17 @@ function App () {
       const parsed = JSON.parse(abi)
       const options = parsed
         .map((obj: any) => {
-          return obj.type === 'event' ? obj.name : null
+          let value = obj.type === 'event' ? obj.name : null
+          let label = value
+          if (value && obj.signature) {
+            label = `${value} (${obj.signature})`
+          }
+          return {
+            label,
+            value
+          }
         })
-        .filter((x: any) => x)
+        .filter((x: any) => x.value)
       const handleChange = (value: string) => {
         setSelectedAbiEvent(value)
         localStorage.setItem('selectedAbiEvent', value)
