@@ -201,6 +201,9 @@ function CustomTx (props: any = {}) {
   })
   const [txhash, setTxhash] = useState<any>(null)
   const [result, setResult] = useState('')
+  const [blockTag, setBlockTag] = useState<string>(() => {
+    return localStorage.getItem('customTxBlockTag') || ''
+  })
   const [tx, setTx] = useState<any>(() => {
     const defaultTx = JSON.stringify(
       {
@@ -235,9 +238,19 @@ function CustomTx (props: any = {}) {
       setTxhash(null)
       setResult('')
       const txData = JSON.parse(tx)
+      console.log(txData)
       let res: any
       if (methodType === 'static') {
-        res = await wallet.call(txData)
+        let _blockTag = undefined
+        if (blockTag) {
+          if (!Number.isNaN(Number(blockTag))) {
+            _blockTag = Number(blockTag)
+          } else {
+            _blockTag = blockTag
+          }
+        }
+
+        res = await wallet.call(txData, _blockTag)
       } else if (methodType === 'populate') {
         res = await wallet.populateTransaction(txData)
       } else if (methodType === 'estimate') {
@@ -254,6 +267,11 @@ function CustomTx (props: any = {}) {
     }
   }
 
+  const updateBlockTag = (val: string) => {
+    setBlockTag(val)
+    localStorage.setItem('customTxBlockTag', val)
+  }
+
   const txLink = txhash ? getTxExplorerUrl(txhash, props.network) : null
 
   return (
@@ -262,6 +280,12 @@ function CustomTx (props: any = {}) {
         <small>Use hex values</small>
       </div>
       <textarea value={tx} onChange={handleChange} />
+      <label>block tag (for static calls)</label>
+      <TextInput
+        value={blockTag}
+        placeholder={'latest'}
+        onChange={updateBlockTag}
+      />
       <div>
         <section>
           <label>
@@ -609,6 +633,39 @@ function AbiMethodForm (props: any = {}) {
         },
         []
       )
+
+      const constructGsafeTx = false
+      if (constructGsafeTx) {
+        const { chainId } = await props.wallet.provider.getNetwork()
+        const gsafeOutput: any = {
+          version: '1.0',
+          chainId: chainId.toString(),
+          createdAt: Date.now(),
+          meta: {
+            name: '',
+            description: '',
+            txBuilderVersion: '',
+            createdFromSafeAddress: '',
+            createdFromOwnerAddress: '',
+            checksum: ''
+          },
+          transactions: []
+        }
+        gsafeOutput.transactions.push({
+          to: contractAddress,
+          data: null,
+          value: tx.value || '0',
+          contractMethod: abiObj,
+          contractInputsValues: contractArgs.reduce(
+            (acc: any, value: any, i: number) => {
+              acc[abiObj.inputs[i].name] = value
+              return acc
+            },
+            {}
+          )
+        })
+        console.log('gsafe tx:', JSON.stringify(gsafeOutput, null, 2))
+      }
 
       console.log('contract args:', contractArgs)
       const res = await contract[callStatic ? 'callStatic' : 'functions'][
