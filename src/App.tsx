@@ -466,9 +466,16 @@ function TextInput (props: any = {}) {
   return el
 }
 
-function AbiMethodForm (props: any = {}) {
-  const cacheKey = JSON.stringify(props.abi)
-  const contractAddress = props.contractAddress
+type AbiMethodFormProps = {
+  abi: any
+  contractAddress: string
+  wallet: Wallet
+  network: string
+}
+
+function AbiMethodForm (props: AbiMethodFormProps) {
+  const { abi: abiObj, contractAddress, wallet, network } = props
+  const cacheKey = JSON.stringify(abiObj)
   const [args, setArgs] = useState<any>(() => {
     const defaultArgs: any = {}
     try {
@@ -504,7 +511,6 @@ function AbiMethodForm (props: any = {}) {
   })
   const [txhash, setTxhash] = useState<any>(null)
   const [tx, setTx] = useState<any>(null)
-  const abiObj = props.abi
   const windowWeb3 = (window as any).ethereum
   const provider = useMemo(() => {
     if (windowWeb3) {
@@ -553,7 +559,7 @@ function AbiMethodForm (props: any = {}) {
 
         const data = iface.encodeFunctionData(
           abiObj.name,
-          Object.values(parsed)
+          Object.values(parsed).slice(0, abiObj?.inputs?.length ?? 0)
         )
         tx.data = data
       }
@@ -607,7 +613,7 @@ function AbiMethodForm (props: any = {}) {
       }
       setTxhash(null)
       setResult('')
-      const contract = new Contract(contractAddress, [abiObj], props.wallet)
+      const contract = new Contract(contractAddress, [abiObj], wallet)
 
       const txOpts: any = {
         gasPrice: tx.gasPrice,
@@ -636,7 +642,7 @@ function AbiMethodForm (props: any = {}) {
 
       const constructGsafeTx = false
       if (constructGsafeTx) {
-        const { chainId } = await props.wallet.provider.getNetwork()
+        const { chainId } = await wallet.provider.getNetwork()
         const gsafeOutput: any = {
           version: '1.0',
           chainId: chainId.toString(),
@@ -674,9 +680,6 @@ function AbiMethodForm (props: any = {}) {
       console.log('result:', result)
       setTxhash(res?.hash)
       setResult(JSON.stringify(res, null, 2))
-      if (props.onSubmit) {
-        props.onSubmit(res)
-      }
     } catch (err) {
       console.error(err)
       alert(err.message)
@@ -708,7 +711,7 @@ function AbiMethodForm (props: any = {}) {
     localStorage.setItem('callStatic', checked)
   }
 
-  const txLink = txhash ? getTxExplorerUrl(txhash, props.network) : null
+  const txLink = txhash ? getTxExplorerUrl(txhash, network) : null
   const stateMutability = abiObj?.stateMutability
   const methodType = abiObj?.type
   const isWritable =
@@ -3164,6 +3167,58 @@ function GasCostCalculator (props: any) {
   )
 }
 
+function MethodSignatureGenerator (props: any) {
+  const [value, setValue] = useState(
+    localStorage.getItem('methodSignatureGeneratorValue') || ''
+  )
+  const [result, setResult] = useState<any>(null)
+  useEffect(() => {
+    localStorage.setItem('methodSignatureGeneratorValue', value || '')
+  }, [value])
+  const handleValueChange = (value: string) => {
+    setValue(value)
+  }
+  const update = async () => {
+    try {
+      setResult(null)
+      if (!value) {
+        throw new Error('value is required')
+      }
+      const res = `0x${(window as any).keccak256(value.trim()).toString('hex')}`
+      setResult(res)
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    update()
+  }
+
+  let output = ''
+  if (result) {
+    output = `byte4: ${result.slice(0, 10)}\nbytes32: ${result}`
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Method or Event signature</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='transfer(address,uint256)'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>get hash</button>
+        </div>
+      </form>
+      <div>
+        <pre>{output}</pre>
+      </div>
+    </div>
+  )
+}
+
 function FourByteDictionary (props: any) {
   const [value, setValue] = useState(
     localStorage.getItem('fourByteValue') || ''
@@ -3788,6 +3843,11 @@ function App () {
       <Fieldset legend='Data decoder'>
         <section>
           <DataDecoder abi={abi} abiName={selectedAbi} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Method and Event Topic Signature Generator'>
+        <section>
+          <MethodSignatureGenerator />
         </section>
       </Fieldset>
       <Fieldset legend='4byte dictionary'>

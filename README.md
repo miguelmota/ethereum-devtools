@@ -23,6 +23,7 @@
 - Tx input data decoder
   - decode constructor callata
   - decode tx calldata
+- Method and Event Topic signature generator
 - 4byte dictionary lookup
 - Unit converter
 - Eth sender
