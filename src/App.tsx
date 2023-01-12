@@ -3577,11 +3577,20 @@ function App () {
         throw new Error('ABI content is required')
       }
       const name = newAbiName.trim()
-      let abiJson = JSON.parse(customAbi.trim())
-      if (!Array.isArray(abiJson)) {
-        if (Array.isArray(abiJson.abi)) {
-          abiJson = abiJson.abi
+
+      let abiJson: any
+      try {
+        abiJson = JSON.parse(customAbi.trim())
+        if (!Array.isArray(abiJson)) {
+          if (Array.isArray(abiJson.abi)) {
+            abiJson = abiJson.abi
+          }
         }
+      } catch (err) {
+        const abiMethods = customAbi.trim().split('\n')
+
+        const iface = new ethers.utils.Interface(abiMethods)
+        abiJson = Object.values(iface.functions)
       }
 
       const newAbi = {
@@ -3818,7 +3827,35 @@ function App () {
               value={customAbi}
               onChange={handleAbiContent}
               variant='textarea'
-              placeholder='[]'
+              placeholder={`
+Examples
+
+function safeMint(address to, uint256 tokenId)
+function ownerOf(uint256 tokenId) public returns (address)
+
+or JSON ABI
+
+[
+  {
+    "type": "function",
+    "name": "safeMint",
+    "constant": false,
+    "inputs": [{ "name": "to", "type": "address" }, { "name": "tokenId", "type": "uint256" }],
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "ownerOf",
+    "constant": false,
+    "inputs": [{ "name": "tokenId", "type": "uint256" }],
+    "outputs": [{ "name": null, "type": "address", "baseType": "address" }],
+    "payable": false,
+    "stateMutability": "nonpayable"
+  }
+]
+`.trim()}
             />
           )}
           {!abiMethodFormShown && (
