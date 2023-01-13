@@ -3172,6 +3172,7 @@ function MethodSignatureGenerator (props: any) {
     localStorage.getItem('methodSignatureGeneratorValue') || ''
   )
   const [result, setResult] = useState<any>(null)
+  const [normalizeValue, setNormalizedValue] = useState<any>('')
   useEffect(() => {
     localStorage.setItem('methodSignatureGeneratorValue', value || '')
   }, [value])
@@ -3181,10 +3182,27 @@ function MethodSignatureGenerator (props: any) {
   const update = async () => {
     try {
       setResult(null)
+      setNormalizedValue('')
       if (!value) {
         throw new Error('value is required')
       }
-      const res = `0x${(window as any).keccak256(value.trim()).toString('hex')}`
+      let _value = value.trim()
+      _value = _value.replace(/^(function|event)/gi, '')
+      const fnName = _value.split('(')[0].trim()
+      _value = _value.replace(/.*?\((.*?)\).*/gi, '$1')
+      const parts = _value.split(',')
+      let args = []
+      for (const part of parts) {
+        args.push(
+          part
+            .split(/\s+/)
+            .filter(x => x)[0]
+            .trim()
+        )
+      }
+      _value = `${fnName}(${args.join(',')})`
+      const res = `0x${(window as any).keccak256(_value).toString('hex')}`
+      setNormalizedValue(_value)
       setResult(res)
     } catch (err) {
       alert(err.message)
@@ -3197,7 +3215,10 @@ function MethodSignatureGenerator (props: any) {
 
   let output = ''
   if (result) {
-    output = `byte4: ${result.slice(0, 10)}\nbytes32: ${result}`
+    output = `input:${normalizeValue}\nbyte4: ${result.slice(
+      0,
+      10
+    )}\nbytes32:${result}`
   }
   return (
     <div>
@@ -3587,10 +3608,15 @@ function App () {
           }
         }
       } catch (err) {
-        const abiMethods = customAbi.trim().split('\n')
+        const abiMethods = customAbi
+          .trim()
+          .split('\n')
+          .filter(x => x)
 
         const iface = new ethers.utils.Interface(abiMethods)
-        abiJson = Object.values(iface.functions)
+        const functionsJson = Object.values(iface.functions || {})
+        const eventsJson = Object.values(iface.events || {})
+        abiJson = functionsJson.concat(...(eventsJson as any))
       }
 
       const newAbi = {
