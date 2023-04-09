@@ -3566,7 +3566,8 @@ function App () {
   }
   const handleSelectChange = (value: string) => {
     setSelectedAbi(value)
-    const method = abis?.[value]?.find((x: any) => x?.type === 'function')?.name ?? ''
+    const method =
+      abis?.[value]?.find((x: any) => x?.type === 'function')?.name ?? ''
     setSelectedAbiMethod(method)
   }
   const handleAbiContent = (value: string) => {
@@ -3616,7 +3617,29 @@ function App () {
           .filter(x => x)
 
         const iface = new ethers.utils.Interface(abiMethods)
-        const functionsJson = Object.values(iface.functions || {})
+        let functionsJson = Object.values(iface.functions || {})
+
+        functionsJson = functionsJson.map((x: any) => {
+          const copy = JSON.parse(JSON.stringify(x))
+          if (!copy) {
+            return copy
+          }
+          if (Array.isArray(copy.inputs)) {
+            for (let idx in copy.inputs) {
+              for (let key in copy.inputs[idx]) {
+                if (copy.inputs[idx][key] === null) {
+                  delete copy.inputs[idx][key]
+                }
+              }
+              delete copy.inputs[idx].baseType
+              delete copy.inputs[idx]._isParamType
+            }
+          }
+          delete copy.gas
+          delete copy._isFragment
+          return copy
+        })
+
         const eventsJson = Object.values(iface.events || {})
         abiJson = functionsJson.concat(...(eventsJson as any))
       }
