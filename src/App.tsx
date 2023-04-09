@@ -3566,6 +3566,8 @@ function App () {
   }
   const handleSelectChange = (value: string) => {
     setSelectedAbi(value)
+    const method = abis?.[value]?.find((x: any) => x?.type === 'function')?.name ?? ''
+    setSelectedAbiMethod(method)
   }
   const handleAbiContent = (value: string) => {
     setCustomAbi(value)
@@ -3629,6 +3631,9 @@ function App () {
       setCustomAbi('')
       setNewAbiName('')
       setSelectedAbi(name)
+      const method =
+        abiJson?.find((x: any) => x?.type === 'function')?.name ?? ''
+      setSelectedAbiMethod(method)
     } catch (err) {
       alert(err)
     }
