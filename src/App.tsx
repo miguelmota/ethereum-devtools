@@ -1437,6 +1437,48 @@ function GetCode (props: any) {
   )
 }
 
+function GetGasPrice (props: any) {
+  const { provider } = props
+  const [gasPrice, setGasPrice] = useState<any>(null)
+  const getGasPrice = async () => {
+    setGasPrice(null)
+    const _gasPrice = await provider.getGasPrice()
+    setGasPrice(_gasPrice?.toString())
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    getGasPrice()
+  }
+
+  const gasPriceGwei = gasPrice ? utils.formatUnits(gasPrice, 9) : ''
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>get gas price</button>
+        </div>
+      </form>
+      <div>
+        <div>
+          {!!gasPrice && (
+            <>
+              <code>{gasPrice}</code> wei
+            </>
+          )}
+        </div>
+        <div>
+          {!!gasPriceGwei && (
+            <>
+              <code>{gasPriceGwei}</code> gwei
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function GetFeeData (props: any) {
   const { provider } = props
   const [feeData, setFeeData] = useState<any>(null)
@@ -1453,7 +1495,7 @@ function GetFeeData (props: any) {
     <div>
       <form onSubmit={handleSubmit}>
         <div style={{ marginTop: '0.5rem' }}>
-          <button type='submit'>get fee data</button>
+          <button type='submit'>get gas fee data</button>
         </div>
       </form>
       <div>{!!feeData && <pre>{JSON.stringify(feeData, null, 2)}</pre>}</div>
@@ -3971,7 +4013,12 @@ or JSON ABI
           <SendRawTx provider={rpcProvider} />
         </section>
       </Fieldset>
-      <Fieldset legend='Get fee data'>
+      <Fieldset legend='Get Gas Price'>
+        <section>
+          <GetGasPrice provider={rpcProvider} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Get Gas Fee Data'>
         <section>
           <GetFeeData provider={rpcProvider} />
         </section>

@@ -35,6 +35,7 @@
   - estimate gas
 - Send raw tx
 - Gas cost calculator
+- Get gas price
 - Get fee data
 - Get tx
 - Get tx receipt
