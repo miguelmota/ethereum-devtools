@@ -595,7 +595,9 @@ function AbiMethodForm (props: AbiMethodFormProps) {
           setMethodSig(_methodSig)
         }
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error(err)
+    }
   }, [abiObj])
 
   if (abiObj.type !== 'function') {
@@ -3436,6 +3438,14 @@ function App () {
   const [contractAddress, setContractAddress] = useState(() => {
     return localStorage.getItem('contractAddress') || ''
   })
+  const [contractAddressLabel, setContractAddressLabel] = useState('')
+  const [savedContractAddresses, setSavedContractAddresses] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('savedContractAddresses') || '')
+    } catch (err) {
+      return []
+    }
+  })
   const [newAbiName, setNewAbiName] = useState('')
   const [abiMethodFormShown, showAbiMethodForm] = useState(false)
   const [selectedAbi, setSelectedAbi] = useState(() => {
@@ -3605,6 +3615,9 @@ function App () {
     }
     setContractAddress(value)
     localStorage.setItem('contractAddress', value)
+  }
+  const handleContractAddressLabelChange = (value: string) => {
+    setContractAddressLabel(value)
   }
   const handleSelectChange = (value: string) => {
     setSelectedAbi(value)
@@ -3824,6 +3837,58 @@ function App () {
     }
   }
 
+  function handleContractAddressLabelSave (event: any) {
+    event.preventDefault()
+    try {
+      if (!contractAddress) {
+        throw new Error('contract address is required')
+      }
+      if (!contractAddressLabel) {
+        throw new Error('contract address label is required')
+      }
+      for (const item of savedContractAddresses) {
+        if (contractAddress === item.contractAddress) {
+          throw new Error('already exists')
+        }
+      }
+      try {
+        utils.getAddress(contractAddress)
+      } catch (err) {
+        throw new Error('invalid address')
+      }
+      setSavedContractAddresses([
+        ...savedContractAddresses,
+        {
+          label: contractAddressLabel,
+          contractAddress
+        }
+      ])
+      setContractAddressLabel('')
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'savedContractAddresses',
+        JSON.stringify(savedContractAddresses)
+      )
+    } catch (err) {}
+  }, [savedContractAddresses])
+
+  function handleContractAddressSelect (event: any) {
+    setContractAddress(event.target.value)
+  }
+
+  function handleContractAddressesClear () {
+    try {
+      setSavedContractAddresses([])
+      localStorage.removeItem('savedContractAddresses')
+    } catch (err) {}
+  }
+
   return (
     <main>
       <header>
@@ -3889,6 +3954,41 @@ function App () {
             onChange={handleContractAddressChange}
             placeholder='0x'
           />
+          <TextInput
+            value={contractAddressLabel}
+            onChange={handleContractAddressLabelChange}
+            placeholder='Label'
+          />
+          <div>
+            <button onClick={handleContractAddressLabelSave}>Save</button>
+          </div>
+          {savedContractAddresses?.length > 0 && (
+            <>
+              <select
+                onChange={handleContractAddressSelect}
+                value={contractAddress}
+              >
+                {savedContractAddresses?.map((x: any) => {
+                  return (
+                    <option key={x.contractAddress} value={x.contractAddress}>
+                      {x.label} - {x.contractAddress}
+                    </option>
+                  )
+                })}
+              </select>
+              <button
+                disabled={savedContractAddresses?.length === 0}
+                onClick={handleContractAddressesClear}
+              >
+                Clear
+              </button>
+            </>
+          )}
+          {!!contractAddress && (
+            <div style={{ marginTop: '1rem' }}>
+              using contract address {contractAddress}
+            </div>
+          )}
         </section>
       </Fieldset>
       <Fieldset legend='ABI'>
