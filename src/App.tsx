@@ -3619,11 +3619,14 @@ function App () {
   const handleContractAddressLabelChange = (value: string) => {
     setContractAddressLabel(value)
   }
-  const handleSelectChange = (value: string) => {
+  const handleAbiSelectChange = (value: string) => {
     setSelectedAbi(value)
     const method =
       abis?.[value]?.find((x: any) => x?.type === 'function')?.name ?? ''
     setSelectedAbiMethod(method)
+    const abiEvent =
+      abis?.[value]?.find((x: any) => x?.type === 'event')?.name ?? ''
+    setSelectedAbiEvent(abiEvent)
   }
   const handleAbiContent = (value: string) => {
     setCustomAbi(value)
@@ -3712,6 +3715,9 @@ function App () {
       const method =
         abiJson?.find((x: any) => x?.type === 'function')?.name ?? ''
       setSelectedAbiMethod(method)
+      const abiEvent =
+        abiJson?.find((x: any) => x?.type === 'event')?.name ?? ''
+      setSelectedAbiEvent(abiEvent)
     } catch (err) {
       alert(err)
     }
@@ -4007,7 +4013,7 @@ function App () {
             ) : (
               <div style={{ marginBottom: '1rem' }}>
                 <Select
-                  onChange={handleSelectChange}
+                  onChange={handleAbiSelectChange}
                   selected={selectedAbi}
                   options={abiOptions}
                 />
