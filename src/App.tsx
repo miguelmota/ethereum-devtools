@@ -3060,7 +3060,7 @@ function DecryptMessage (props: any) {
 
 function GasCostCalculator (props: any) {
   const { provider } = props
-  const defaultGasLimit = '2100'
+  const defaultGasLimit = '21000'
   const [ethUsdPrice, setEthUsdPrice] = useState(
     localStorage.getItem('gasCostCalculatorEthUsdPrice') || ''
   )
@@ -3117,7 +3117,7 @@ function GasCostCalculator (props: any) {
       const _gasPrice = Number(gasPrice)
       const _gasLimit = Number(gasLimit)
       const _ethUsdPrice = Number(ethUsdPrice)
-      const requiredGas = Number(
+      const estimate = Number(
         utils.formatUnits(
           utils.parseUnits(
             (_gasPrice * _gasLimit * _ethUsdPrice).toString(),
@@ -3126,9 +3126,9 @@ function GasCostCalculator (props: any) {
           18
         )
       )
-      const result = Number(requiredGas.toFixed(2)).toString()
+      const result = Number(estimate.toFixed(18)).toString()
       setResult(result)
-    } catch (err) {
+    } catch (err: any) {
       alert(err.message)
       console.error(err)
     }
