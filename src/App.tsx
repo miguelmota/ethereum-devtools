@@ -250,11 +250,11 @@ function CustomTx (props: any = {}) {
           }
         }
 
-        res = await wallet.call(txData, _blockTag)
+        res = await wallet.provider.call(txData, _blockTag)
       } else if (methodType === 'populate') {
         res = await wallet.populateTransaction(txData)
       } else if (methodType === 'estimate') {
-        res = await wallet.estimateGas(txData)
+        res = await wallet.provider.estimateGas(txData)
       } else if (methodType === 'sign') {
         res = await wallet.signTransaction(txData)
       } else {
@@ -3070,7 +3070,11 @@ function GasCostCalculator (props: any) {
   const [gasLimit, setGasLimit] = useState(
     localStorage.getItem('gasCostCalculatorGasLimit') || defaultGasLimit
   )
-  const [result, setResult] = useState<any>('')
+  const [resultEth, setResultEth] = useState<any>('')
+  const [resultUsd, setResultUsd] = useState<any>('')
+  const [isWei, setIsWei] = useState<any>(
+    localStorage.getItem('gasCostCalculatorIsWei') === 'true'
+  )
   const [usingCustomGasPrice, setUsingCustomGasPrice] = useState(false)
   const [usingCustomEthUsdPrice, setUsingCustomEthUsdPrice] = useState(false)
   useEffect(() => {
@@ -3082,6 +3086,9 @@ function GasCostCalculator (props: any) {
   useEffect(() => {
     localStorage.setItem('gasCostCalculatorGasLimit', gasLimit || '')
   }, [gasLimit])
+  useEffect(() => {
+    localStorage.setItem('gasCostCalculatorIsWei', isWei)
+  }, [isWei])
 
   useEffect(() => {
     async function getGasPrice () {
@@ -3113,26 +3120,29 @@ function GasCostCalculator (props: any) {
 
   const calculate = useCallback(async () => {
     try {
-      setResult('')
+      setResultEth('')
+      setResultUsd('')
       const _gasPrice = Number(gasPrice)
       const _gasLimit = Number(gasLimit)
       const _ethUsdPrice = Number(ethUsdPrice)
-      const estimate = Number(
-        utils.formatUnits(
-          utils.parseUnits(
-            (_gasPrice * _gasLimit * _ethUsdPrice).toString(),
-            9
-          ),
-          18
-        )
+      const estimateEth = utils.formatUnits(
+        utils.parseUnits((_gasPrice * _gasLimit).toString(), isWei ? 0 : 9),
+        18
       )
-      const result = Number(estimate.toFixed(18)).toString()
-      setResult(result)
-    } catch (err: any) {
+      const estimateUsd = utils.formatUnits(
+        utils.parseUnits(
+          (_gasPrice * _gasLimit * _ethUsdPrice).toString(),
+          isWei ? 0 : 9
+        ),
+        18
+      )
+      setResultEth(estimateEth)
+      setResultUsd(estimateUsd)
+    } catch (err) {
       alert(err.message)
       console.error(err)
     }
-  }, [ethUsdPrice, gasPrice, gasLimit])
+  }, [ethUsdPrice, gasPrice, gasLimit, isWei])
 
   useEffect(() => {
     if (
@@ -3158,9 +3168,15 @@ function GasCostCalculator (props: any) {
     setEthUsdPrice('')
     setGasPrice('')
     setGasLimit(defaultGasLimit)
-    setResult('')
+    setResultEth('')
+    setResultUsd('')
     setUsingCustomGasPrice(false)
     setUsingCustomEthUsdPrice(false)
+  }
+
+  const updateInputType = (event: any) => {
+    const { value } = event.target
+    setIsWei(value === 'wei')
   }
 
   const handleEthUsdPriceChange = (value: string) => {
@@ -3178,6 +3194,7 @@ function GasCostCalculator (props: any) {
     event.preventDefault()
     calculate()
   }
+
   return (
     <div>
       <form onSubmit={handleSubmit}>
@@ -3187,7 +3204,28 @@ function GasCostCalculator (props: any) {
           onChange={handleEthUsdPriceChange}
           placeholder='1500'
         />
-        <label>Gas price (gwei)</label>
+        <label>
+          Gas price (
+          <span style={{ display: 'inline-block', marginRight: '0.5rem' }}>
+            <input
+              type='radio'
+              value='gwei'
+              checked={!isWei}
+              onChange={updateInputType}
+            />
+            gwei
+          </span>
+          <span>
+            <input
+              type='radio'
+              value='wei'
+              checked={isWei}
+              onChange={updateInputType}
+            />
+            wei
+          </span>
+          )
+        </label>
         <TextInput
           value={gasPrice}
           onChange={handleGasPriceChange}
@@ -3206,7 +3244,8 @@ function GasCostCalculator (props: any) {
           <button onClick={reset}>reset</button>
         </div>
       </form>
-      <div style={{ marginTop: '1rem' }}>Gas cost (USD): {result}</div>
+      <div style={{ marginTop: '1rem' }}>Gas cost (ETH): {resultEth}</div>
+      <div style={{ marginTop: '1rem' }}>Gas cost (USD): {resultUsd}</div>
     </div>
   )
 }
