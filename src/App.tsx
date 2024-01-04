@@ -12,11 +12,13 @@ import {
   Wallet,
   Signer,
   providers,
-  utils
+  utils,
+  ContractFactory
 } from 'ethers'
 // @ts-ignore
 import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
+import CustomERC20Artifact from './deploy/CustomERC20.json'
 import CID from 'cids'
 
 const BlockDater = require('ethereum-block-by-date')
@@ -3125,15 +3127,16 @@ function GasCostCalculator (props: any) {
       const _gasPrice = Number(gasPrice)
       const _gasLimit = Number(gasLimit)
       const _ethUsdPrice = Number(ethUsdPrice)
+      const _estimateEth = (_gasPrice * _gasLimit).toFixed(isWei ? 18 : 9)
       const estimateEth = utils.formatUnits(
-        utils.parseUnits((_gasPrice * _gasLimit).toString(), isWei ? 0 : 9),
+        utils.parseUnits(_estimateEth, isWei ? 0 : 9),
         18
       )
+      const _estimateUsd = (_gasPrice * _gasLimit * _ethUsdPrice).toFixed(
+        isWei ? 18 : 9
+      )
       const estimateUsd = utils.formatUnits(
-        utils.parseUnits(
-          (_gasPrice * _gasLimit * _ethUsdPrice).toString(),
-          isWei ? 0 : 9
-        ),
+        utils.parseUnits(_estimateUsd.toString(), isWei ? 0 : 9),
         18
       )
       setResultEth(estimateEth)
@@ -3366,6 +3369,129 @@ function FourByteDictionary (props: any) {
       </form>
       <div>
         <pre>{output}</pre>
+      </div>
+    </div>
+  )
+}
+
+function DeployERC20 (props: any) {
+  const { wallet } = props
+  const [name, setName] = useState(
+    localStorage.getItem('deployERC20Name') || ''
+  )
+  const [symbol, setSymbol] = useState(
+    localStorage.getItem('deployERC20Symbol') || ''
+  )
+  const [decimals, setDecimals] = useState(
+    localStorage.getItem('deployERC20Decimals') || '18'
+  )
+  const [initialSupply, setInitialSupply] = useState(
+    localStorage.getItem('deployERC20InitialSupply') || ''
+  )
+  const [result, setResult] = useState<any>(null)
+  useEffect(() => {
+    localStorage.setItem('deployERC20Name', name || '')
+  }, [name])
+  useEffect(() => {
+    localStorage.setItem('deployERC20Symbol', symbol || '')
+  }, [symbol])
+  useEffect(() => {
+    localStorage.setItem('deployERC20Decimals', decimals || '')
+  }, [decimals])
+  useEffect(() => {
+    localStorage.setItem('deployERC20InitialSupply', initialSupply || '')
+  }, [initialSupply])
+  const handleNameChange = (value: string) => {
+    setName(value)
+  }
+  const handleSymbolChange = (value: string) => {
+    setSymbol(value)
+  }
+  const handleDecimalsChange = (value: string) => {
+    setDecimals(value)
+  }
+  const handleInitialSupplyChange = (value: string) => {
+    setInitialSupply(value)
+  }
+  async function deploy () {
+    try {
+      setResult(null)
+      if (!name) {
+        throw new Error('name is required')
+      }
+      if (!symbol) {
+        throw new Error('symbol is required')
+      }
+      if (!decimals) {
+        throw new Error('decimals is required')
+      }
+      if (!wallet) {
+        throw new Error('expected signer')
+      }
+      const factory = new ContractFactory(
+        CustomERC20Artifact.abi,
+        CustomERC20Artifact.bytecode,
+        wallet
+      )
+      setResult('deploying...')
+      const contract = await factory.deploy(
+        name,
+        symbol,
+        utils.parseUnits(initialSupply || '0', decimals)
+      )
+      const receipt = await contract.deployTransaction.wait()
+      setResult(JSON.stringify(receipt, null, 2))
+    } catch (err) {
+      setResult(null)
+      alert(err.message)
+    }
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    deploy()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Name (string) *</label>
+          <TextInput
+            value={name}
+            onChange={handleNameChange}
+            placeholder='MyToken'
+          />
+        </div>
+        <div>
+          <label>Symbol (string) *</label>
+          <TextInput
+            value={symbol}
+            onChange={handleSymbolChange}
+            placeholder='TKN'
+          />
+        </div>
+        <div>
+          <label>Decimals (uint256) *</label>
+          <TextInput
+            value={decimals}
+            onChange={handleDecimalsChange}
+            readOnly={true}
+            placeholder='18'
+          />
+        </div>
+        <div>
+          <label>Initial Supply (uint256)</label>
+          <TextInput
+            value={initialSupply}
+            onChange={handleInitialSupplyChange}
+            placeholder='1000'
+          />
+        </div>
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>Deploy</button>
+        </div>
+      </form>
+      <div>
+        <pre>{result}</pre>
       </div>
     </div>
   )
@@ -4131,6 +4257,11 @@ or JSON ABI
       <Fieldset legend='4byte dictionary'>
         <section>
           <FourByteDictionary />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Deploy ERC20'>
+        <section>
+          <DeployERC20 wallet={wallet} />
         </section>
       </Fieldset>
       <Fieldset legend='Send ETH'>

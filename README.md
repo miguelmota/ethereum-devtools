@@ -34,6 +34,7 @@
   - sign tx
   - estimate gas
 - Send raw tx
+- Deploy ERC20
 - Gas cost calculator
 - Get gas price
 - Get fee data
