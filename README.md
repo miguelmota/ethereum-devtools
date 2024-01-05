@@ -44,9 +44,9 @@
 - Get block number from date
 - Get address code
 - Get nonce
-- Ens resolver
-- Ens reverse resolver
-- Ens avatar resolver
+- ENS resolver
+- ENS reverse resolver
+- ENS avatar resolver
 - Hex coder
 - Base58 coder
 - IPFS hash coder
@@ -61,9 +61,9 @@
 - Encrypt message with public key
 - Decrypt message with private key
 - Batch Eth balance checker
-- Batch Erc20 balance checker
-- Batch EkSync balance checker
-- Batch Ens reverse resolver checker
+- Batch ERC20 balance checker
+- Batch zkSync balance checker
+- Batch ENS reverse resolver checker
 - Keystore encrypt and decrypt
 - HD wallet key generator
 
@@ -76,6 +76,10 @@ npm install
 ```bash
 npm run start
 ```
+
+## Disclaimer
+
+This is a personal tool and is not intended to be used for production. Use at your own risk.
 
 ## License
 
