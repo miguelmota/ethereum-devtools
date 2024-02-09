@@ -15,10 +15,15 @@ import {
   utils,
   ContractFactory
 } from 'ethers'
+import {
+  ContractFactory as ZkSyncContractFactory,
+  Web3Provider as ZkSyncWeb3Provider
+} from 'zksync-ethers' // era
 // @ts-ignore
 import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CustomERC20Artifact from './deploy/CustomERC20.json'
+import ZkSyncCustomERC20Artifact from './deploy/ZkSyncCustomERC20.json'
 import CID from 'cids'
 
 const BlockDater = require('ethereum-block-by-date')
@@ -26,7 +31,7 @@ const { DateTime } = require('luxon')
 const fourByte = require('4byte')
 const Buffer = require('buffer/').Buffer
 const sigUtil = require('eth-sig-util')
-const zksync = require('zksync')
+const zksync = require('zksync') // v1
 const etherConverter = require('ether-converter') // TODO: types
 const privateKeyToAddress = require('ethereum-private-key-to-address')
 const privateKeyToPublicKey = require('ethereum-private-key-to-public-key')
@@ -3428,11 +3433,22 @@ function DeployERC20 (props: any) {
       if (!wallet) {
         throw new Error('expected signer')
       }
-      const factory = new ContractFactory(
-        CustomERC20Artifact.abi,
-        CustomERC20Artifact.bytecode,
-        wallet
-      )
+      let factory: any
+      const chainId = Number(await wallet.getChainId())
+      const useZkSync = [324, 300].includes(chainId)
+      if (useZkSync) {
+        factory = new ZkSyncContractFactory(
+          ZkSyncCustomERC20Artifact.abi,
+          ZkSyncCustomERC20Artifact.bytecode,
+          new ZkSyncWeb3Provider((window as any).ethereum, 'any').getSigner()
+        )
+      } else {
+        factory = new ContractFactory(
+          CustomERC20Artifact.abi,
+          CustomERC20Artifact.bytecode,
+          wallet
+        )
+      }
       setResult('deploying...')
       const contract = await factory.deploy(
         name,
@@ -3444,6 +3460,7 @@ function DeployERC20 (props: any) {
     } catch (err) {
       setResult(null)
       alert(err.message)
+      console.error(err)
     }
   }
   const handleSubmit = (event: any) => {
