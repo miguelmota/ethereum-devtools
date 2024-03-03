@@ -19,27 +19,26 @@ import {
   ContractFactory as ZkSyncContractFactory,
   Web3Provider as ZkSyncWeb3Provider
 } from 'zksync-ethers' // era
-// @ts-ignore
 import InputDecoder from 'ethereum-input-data-decoder'
 import nativeAbis from './abi'
 import CustomERC20Artifact from './deploy/CustomERC20.json'
 import ZkSyncCustomERC20Artifact from './deploy/ZkSyncCustomERC20.json'
 import CID from 'cids'
 
-const BlockDater = require('ethereum-block-by-date')
-const { DateTime } = require('luxon')
-const fourByte = require('4byte')
-const Buffer = require('buffer/').Buffer
-const sigUtil = require('eth-sig-util')
-const zksync = require('zksync') // v1
-const etherConverter = require('ether-converter') // TODO: types
-const privateKeyToAddress = require('ethereum-private-key-to-address')
-const privateKeyToPublicKey = require('ethereum-private-key-to-public-key')
-const publicKeyToAddress = require('ethereum-public-key-to-address')
-const base58 = require('bs58') // TODO: types
-const contentHash = require('content-hash') // TODO: types
-//const namehash = require('eth-ens-namehash') // namehash.hash(...)
-const contentHash2 = require('@ensdomains/content-hash')
+import BlockDater from 'ethereum-block-by-date'
+import { DateTime } from 'luxon'
+import fourByte from '4byte'
+import sigUtil from 'eth-sig-util'
+import zksync from 'zksync' // v1
+//import namehash from 'eth-ens-namehash' // namehash.hash(...)
+import contentHash2 from '@ensdomains/content-hash'
+import etherConverter from 'ether-converter'
+import privateKeyToAddress from 'ethereum-private-key-to-address'
+import privateKeyToPublicKey from 'ethereum-private-key-to-public-key'
+import publicKeyToAddress from 'ethereum-public-key-to-address'
+import base58 from 'bs58'
+import contentHash from 'content-hash'
+import { Buffer } from 'buffer'
 
   // utils available as globals
 ;(window as any).BigNumber = BigNumber
@@ -1850,12 +1849,14 @@ function Base58Coder (props: any) {
   const decode = () => {
     try {
       setResult(null)
-      const base58content = base58.decode(decodeValue)
-      setResult(
-        `0x${Buffer.from(base58content).toString('hex')}\n${Buffer.from(
-          base58content
-        ).toString()}`
-      )
+      if (decodeValue) {
+        const base58content = base58.decode(decodeValue)
+        setResult(
+          `0x${Buffer.from(base58content).toString('hex')}\n${Buffer.from(
+            base58content
+          ).toString()}`
+        )
+      }
     } catch (err) {
       alert(err.message)
     }
