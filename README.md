@@ -57,6 +57,7 @@
 - Public key to address
 - Hash message
 - Sign message
+- Sign typed data EIP-712
 - Verify signature
 - Encrypt message with public key
 - Decrypt message with private key

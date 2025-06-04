@@ -40,7 +40,7 @@ import base58 from 'bs58'
 import contentHash from 'content-hash'
 import { Buffer } from 'buffer'
 
-  // utils available as globals
+// utils available as globals
 ;(window as any).BigNumber = BigNumber
 ;(window as any).ethers = ethers
 ;(window as any).utils = utils
@@ -2834,6 +2834,62 @@ function SignMessage (props: any) {
   )
 }
 
+function SignTypedData (props: any) {
+  const { wallet } = props
+  const [loading, setLoading] = useState<boolean>(false)
+  const [value, setValue] = useState<string>(
+    localStorage.getItem('signTypedDataValue' || '') || ''
+  )
+  const [result, setResult] = useState<string | null>(null)
+  useEffect(() => {
+    localStorage.setItem('signTypedDataValue', value || '')
+  }, [value])
+  const handleValueChange = (_value: string) => {
+    setValue(_value)
+  }
+  const encode = async () => {
+    try {
+      setResult(null)
+      setLoading(true)
+      const json = JSON.parse(value)
+      console.log('json:', json)
+      const signature = await wallet._signTypedData(
+        json.domain,
+        json.types,
+        json.value
+      )
+      setResult(signature)
+    } catch (err) {
+      alert(err.message)
+    }
+    setLoading(false)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    encode()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Message</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='{ domain, types, value }'
+          variant='textarea'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>sign typed message</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>
+        {loading && <span>waiting for wallet...</span>}
+        {result}
+      </div>
+    </div>
+  )
+}
+
 function VerifySignature (props: any) {
   const [hashMessage, setHashMessage] = useState<boolean>(
     localStorage.getItem('verifySignatureHashMessage') === 'true'
@@ -4420,6 +4476,11 @@ or JSON ABI
       <Fieldset legend='Sign Message'>
         <section>
           <SignMessage wallet={wallet} />
+        </section>
+      </Fieldset>
+      <Fieldset legend='Sign Typed Message EIP-712'>
+        <section>
+          <SignTypedData wallet={wallet} />
         </section>
       </Fieldset>
       <Fieldset legend='Verify signature'>
