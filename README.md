@@ -58,6 +58,7 @@
 - Hash message
 - Sign message
 - Sign typed data EIP-712
+- Sign ERC20 permit EIP-2612
 - Verify signature
 - Encrypt message with public key
 - Decrypt message with private key
