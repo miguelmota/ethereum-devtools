@@ -28,5 +28,3 @@ deploy.sh
 todo.txt
 
 *.env
-
-./deploy

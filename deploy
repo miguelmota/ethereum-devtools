@@ -1,4 +1,0 @@
-#!/bin/bash
-
-PUBLIC_URL="https://lab.miguelmota.com/ethereum-devtools" npm run build
-rsync -avuz $HOME/Sandbox/ethereum-devtools-gui/build/ --chmod=ugo=rwX -e ssh moogs:/var/www/miguelmota-lab/ethereum-devtools
