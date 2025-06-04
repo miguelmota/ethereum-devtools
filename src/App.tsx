@@ -2834,62 +2834,6 @@ function SignMessage (props: any) {
   )
 }
 
-function SignTypedData (props: any) {
-  const { wallet } = props
-  const [loading, setLoading] = useState<boolean>(false)
-  const [value, setValue] = useState<string>(
-    localStorage.getItem('signTypedDataValue' || '') || ''
-  )
-  const [result, setResult] = useState<string | null>(null)
-  useEffect(() => {
-    localStorage.setItem('signTypedDataValue', value || '')
-  }, [value])
-  const handleValueChange = (_value: string) => {
-    setValue(_value)
-  }
-  const encode = async () => {
-    try {
-      setResult(null)
-      setLoading(true)
-      const json = JSON.parse(value)
-      console.log('json:', json)
-      const signature = await wallet._signTypedData(
-        json.domain,
-        json.types,
-        json.value
-      )
-      setResult(signature)
-    } catch (err) {
-      alert(err.message)
-    }
-    setLoading(false)
-  }
-  const handleSubmit = (event: any) => {
-    event.preventDefault()
-    encode()
-  }
-  return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <label>Message</label>
-        <TextInput
-          value={value}
-          onChange={handleValueChange}
-          placeholder='{ domain, types, value }'
-          variant='textarea'
-        />
-        <div style={{ marginTop: '0.5rem' }}>
-          <button type='submit'>sign typed message</button>
-        </div>
-      </form>
-      <div style={{ marginTop: '1rem' }}>
-        {loading && <span>waiting for wallet...</span>}
-        {result}
-      </div>
-    </div>
-  )
-}
-
 function VerifySignature (props: any) {
   const [hashMessage, setHashMessage] = useState<boolean>(
     localStorage.getItem('verifySignatureHashMessage') === 'true'
@@ -2996,6 +2940,240 @@ function VerifySignature (props: any) {
         </div>
       </form>
       <div style={{ marginTop: '1rem' }}>{result}</div>
+    </div>
+  )
+}
+
+function SignTypedData (props: any) {
+  const { wallet } = props
+  const [loading, setLoading] = useState<boolean>(false)
+  const [value, setValue] = useState<string>(
+    localStorage.getItem('signTypedDataValue' || '') || ''
+  )
+  const [result, setResult] = useState<string | null>(null)
+  useEffect(() => {
+    localStorage.setItem('signTypedDataValue', value || '')
+  }, [value])
+  const handleValueChange = (_value: string) => {
+    setValue(_value)
+  }
+  const encode = async () => {
+    try {
+      setResult(null)
+      setLoading(true)
+      const json = JSON.parse(value)
+      console.log('json:', json)
+      const signature = await wallet._signTypedData(
+        json.domain,
+        json.types,
+        json.value || json.message
+      )
+      setResult(signature)
+    } catch (err) {
+      alert(err.message)
+    }
+    setLoading(false)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    encode()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Message</label>
+        <TextInput
+          value={value}
+          onChange={handleValueChange}
+          placeholder='{ domain, types, value }'
+          variant='textarea'
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>sign typed message</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>
+        {loading && <span>waiting for wallet...</span>}
+        {result}
+      </div>
+    </div>
+  )
+}
+
+const ERC20_ABI = [
+  'function name() view returns (string)',
+  'function version() view returns (string)',
+  'function nonces(address owner) view returns (uint256)',
+  'function DOMAIN_SEPARATOR() view returns (bytes32)'
+]
+
+async function signPermit ({
+  tokenAddress,
+  owner,
+  spender,
+  value,
+  deadline,
+  provider,
+  signer
+}: {
+  tokenAddress: string
+  owner: string
+  spender: string
+  value: string
+  deadline: string
+  provider: any
+  signer: any
+}) {
+  const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider)
+
+  const [name, nonce] = await Promise.all([token.name(), token.nonces(owner)])
+
+  let version = 1
+  try {
+    version = await token.version()
+  } catch (err) {}
+
+  const domain = {
+    name,
+    version,
+    chainId: (await provider.getNetwork()).chainId,
+    verifyingContract: tokenAddress
+  }
+
+  const types = {
+    Permit: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' }
+    ]
+  }
+
+  const message = {
+    owner,
+    spender,
+    value,
+    nonce,
+    deadline
+  }
+
+  const signature = await signer._signTypedData(domain, types, message)
+  const { v, r, s } = ethers.utils.splitSignature(signature)
+
+  return { v, r, s, signature }
+}
+
+function SignERC20Permit (props: any) {
+  const { wallet } = props
+  const [loading, setLoading] = useState<boolean>(false)
+  const [token, setToken] = useState<string>(
+    localStorage.getItem('signERC20PermitToken' || '') || ''
+  )
+  const [owner, setOwner] = useState<string>(
+    localStorage.getItem('signERC20PermitOwner' || '') || ''
+  )
+  const [spender, setSpender] = useState<string>(
+    localStorage.getItem('signERC20PermitSpender' || '') || ''
+  )
+  const [value, setValue] = useState<string>(
+    localStorage.getItem('signERC20PermitValue' || '') || ''
+  )
+  const [deadline, setDeadline] = useState<string>(
+    localStorage.getItem('signERC20PermitDeadline' || '') || ''
+  )
+  const [result, setResult] = useState<string | null>(null)
+  useEffect(() => {
+    localStorage.setItem('signERC20PermitToken', token || '')
+  }, [token])
+  useEffect(() => {
+    localStorage.setItem('signERC20PermitOwner', owner || '')
+  }, [owner])
+  useEffect(() => {
+    localStorage.setItem('signERC20PermitSpender', spender || '')
+  }, [spender])
+  useEffect(() => {
+    localStorage.setItem('signERC20PermitValue', value || '')
+  }, [value])
+  useEffect(() => {
+    localStorage.setItem('signERC20PermitDeadline', deadline || '')
+  }, [deadline])
+  const handleTokenChange = (_value: string) => {
+    setToken(_value)
+  }
+  const handleOwnerChange = (_value: string) => {
+    setOwner(_value)
+  }
+  const handleSpenderChange = (_value: string) => {
+    setSpender(_value)
+  }
+  const handleValueChange = (_value: string) => {
+    setValue(_value)
+  }
+  const handleDeadlineChange = (_value: string) => {
+    setDeadline(_value)
+  }
+  const encode = async () => {
+    try {
+      setResult(null)
+      setLoading(true)
+      const permitData = await signPermit({
+        tokenAddress: token,
+        owner,
+        spender,
+        value,
+        deadline,
+        provider: wallet.provider,
+        signer: wallet
+      })
+
+      setResult(JSON.stringify(permitData, null, 2))
+    } catch (err) {
+      alert(err.message)
+    }
+    setLoading(false)
+  }
+  const handleSubmit = (event: any) => {
+    event.preventDefault()
+    encode()
+  }
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <label>Token</label>
+        <TextInput
+          value={token}
+          onChange={handleTokenChange}
+          placeholder='0x...'
+        />
+        <label>Owner</label>
+        <TextInput
+          value={owner}
+          onChange={handleOwnerChange}
+          placeholder='0x...'
+        />
+        <label>Spender</label>
+        <TextInput
+          value={spender}
+          onChange={handleSpenderChange}
+          placeholder='0x....'
+        />
+        <label>Value</label>
+        <TextInput value={value} onChange={handleValueChange} placeholder='0' />
+        <label>Deadline</label>
+        <TextInput
+          value={deadline}
+          onChange={handleDeadlineChange}
+          placeholder={`${Math.floor(Date.now() / 1000)}`}
+        />
+        <div style={{ marginTop: '0.5rem' }}>
+          <button type='submit'>sign permit</button>
+        </div>
+      </form>
+      <div style={{ marginTop: '1rem' }}>
+        {loading && <span>waiting for wallet...</span>}
+        {result}
+      </div>
     </div>
   )
 }
@@ -4478,14 +4656,19 @@ or JSON ABI
           <SignMessage wallet={wallet} />
         </section>
       </Fieldset>
+      <Fieldset legend='Verify signature'>
+        <section>
+          <VerifySignature />
+        </section>
+      </Fieldset>
       <Fieldset legend='Sign Typed Message EIP-712'>
         <section>
           <SignTypedData wallet={wallet} />
         </section>
       </Fieldset>
-      <Fieldset legend='Verify signature'>
+      <Fieldset legend='Sign ERC20 Permit EIP-2612'>
         <section>
-          <VerifySignature />
+          <SignERC20Permit wallet={wallet} />
         </section>
       </Fieldset>
       <Fieldset legend='Encrypt Message'>
